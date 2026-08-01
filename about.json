@@ -1,0 +1,9 @@
+{
+  "name": "TTS Listen Button",
+  "component": true,
+  "authors": "Mehdi Roshan Fekr (Amenein)",
+  "about_url": "https://github.com/mehdiamenein/discourse-tts-listen",
+  "license_url": "https://github.com/mehdiamenein/discourse-tts-listen/blob/main/LICENSE",
+  "theme_version": "0.1.0",
+  "minimum_discourse_version": "3.2.0"
+}

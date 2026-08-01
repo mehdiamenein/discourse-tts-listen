@@ -1,0 +1,21 @@
+default_rate:
+  type: float
+  default: 1
+  min: 0.5
+  max: 3
+
+show_voice_selector:
+  type: bool
+  default: true
+
+skip_code_blocks:
+  type: bool
+  default: true
+
+skip_quotes:
+  type: bool
+  default: false
+
+show_unsupported_notice:
+  type: bool
+  default: false

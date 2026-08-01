@@ -1,0 +1,9 @@
+en:
+  theme_metadata:
+    description: "Adds an accessible 'Listen' button to posts using the browser's built-in text-to-speech (Web Speech API). No external services, no API keys."
+    settings:
+      default_rate: "Default playback speed (1 = normal)."
+      show_voice_selector: "Let users pick from the voices installed on their device."
+      skip_code_blocks: "Don't read code blocks aloud."
+      skip_quotes: "Don't read quoted content aloud."
+      show_unsupported_notice: "Show a short notice on posts when the visitor's browser has no text-to-speech support (otherwise the button is simply hidden)."

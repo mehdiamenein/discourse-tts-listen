@@ -1,0 +1,54 @@
+.tts-player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0 0 0.75em;
+  padding: 0.5em 0.75em;
+  background: var(--primary-very-low);
+  border: 1px solid var(--primary-low);
+  border-radius: 6px;
+
+  .tts-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    margin: 0;
+    font-size: var(--font-down-1);
+    color: var(--primary-medium);
+  }
+
+  .tts-select {
+    max-width: 14em;
+    margin: 0;
+  }
+
+  .btn:focus-visible,
+  .tts-select:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+  }
+}
+
+.tts-speaking {
+  background: var(--highlight-low, rgb(255 213 79 / 35%));
+  box-shadow: 0 0 0 3px var(--highlight-low, rgb(255 213 79 / 35%));
+  border-radius: 3px;
+}
+
+.tts-unsupported {
+  font-size: var(--font-down-1);
+  color: var(--primary-medium);
+}
+
+.tts-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
