@@ -194,12 +194,22 @@ class TTSPlayer {
   }
 
   loadVoices() {
+    // Chrome populates voices asynchronously (and iOS only after a user
+    // gesture), so the configured default is re-applied whenever the device
+    // reports them — including when the voice selector is hidden, which is
+    // otherwise the only path that never re-runs this. A user's own choice
+    // in the dropdown still wins (applyDefaultSelection bails out then).
+    if (!this.voiceChosen) {
+      this.applyDefaultSelection();
+    }
+
     if (!this.voiceField) {
       return;
     }
+
     const voices = this.synth.getVoices();
     if (!voices.length) {
-      return; // Chrome populates voices asynchronously
+      return; // still waiting; voiceschanged will fire again
     }
     const select = this.voiceField.select;
     const prev = select.value;
@@ -214,20 +224,15 @@ class TTSPlayer {
       o.textContent = `${v.name} (${v.lang})`;
       select.append(o);
     });
-    if (!this.voiceChosen) {
-      // Voices can arrive late (Chrome loads them asynchronously), so the
-      // configured default is re-applied whenever the device reports them.
-      this.applyDefaultSelection();
-      const idx = voices.indexOf(this.voice);
-      select.value = idx >= 0 ? String(idx) : prev;
-    } else {
-      select.value = prev;
-    }
+    const idx = voices.indexOf(this.voice);
+    select.value = idx >= 0 ? String(idx) : prev;
   }
 
   // Pick the starting voice from the theme settings: an explicit default
-  // voice, a fallback voice, then the platform's default language, then the
-  // first voice available on the device. A user's own choice wins over all.
+  // language, a fallback language, then the platform's default language,
+  // then the first voice available on the device. A user's own choice wins
+  // over all. The settings are enums of language codes; "auto" is treated
+  // as no preference by the matcher.
   applyDefaultSelection() {
     if (this.voiceChosen) {
       return;
