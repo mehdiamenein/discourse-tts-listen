@@ -20,6 +20,8 @@ it helps other communities a little bit too. Use it, fork it, improve it.
 - Detects `speechSynthesis` support and only renders the player when available
 - Reads only the post body — never navigation or UI chrome
 - Play / pause / resume / stop, playback-speed control, optional voice picker
+- Configurable **default and fallback voice** (by name or language code)
+- Speech language follows the **platform's default language** (Discourse locale), not the visitor's browser — German-first communities get German voices automatically
 - Highlights the paragraph currently being read
 - Keyboard accessible, visible focus states, `aria-live` status announcements
 - Never autoplays; speech stops when you navigate away
@@ -51,10 +53,25 @@ components → TTS Listen Button → Settings**:
 | Setting                   | Default | Description                                          |
 | ------------------------- | ------- | ---------------------------------------------------- |
 | `default_rate`            | `1`     | Default playback speed (0.5 – 3)                     |
+| `default_voice`           | *(empty)* | Preferred voice, matched by name or language code (e.g. `Google Deutsch` or `de`). Falls back to the platform language if unmatched |
+| `fallback_voice`          | *(empty)* | Second-choice voice, used when `default_voice` is unavailable on the visitor's device |
 | `show_voice_selector`     | `true`  | Show a dropdown with the device's available voices   |
 | `skip_code_blocks`        | `true`  | Don't read out code blocks                           |
 | `skip_quotes`             | `false` | Don't read out quoted posts                          |
 | `show_unsupported_notice` | `false` | Show a notice instead of hiding the player when TTS is unavailable |
+
+### How the voice is chosen
+
+1. The `default_voice` setting, if it matches a voice on the visitor's device
+   (matched case-insensitively against the voice name and language)
+2. The `fallback_voice` setting
+3. The first available voice speaking the **platform's default language**
+   (the Discourse site locale — so a German forum gets German voices even if
+   the visitor's browser is English)
+4. The first available voice on the device
+5. If the browser has no text-to-speech at all, the button is hidden
+
+Visitors can always override the default by picking a voice in the player.
 
 ## Browser support
 

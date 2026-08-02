@@ -4,6 +4,14 @@ default_rate:
   min: 0.5
   max: 3
 
+default_voice:
+  type: string
+  default: ""
+
+fallback_voice:
+  type: string
+  default: ""
+
 show_voice_selector:
   type: bool
   default: true

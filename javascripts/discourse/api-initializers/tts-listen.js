@@ -1,4 +1,5 @@
 import { apiInitializer } from "discourse/lib/api";
+import { selectVoice } from "../lib/tts-selection";
 
 const STRINGS = {
   groupLabel: "Listen to this post",
@@ -89,8 +90,11 @@ class TTSPlayer {
     this.gen = 0; // invalidates stale utterance callbacks after cancel/restart
     this.rate = Number(settings.default_rate) || 1;
     this.voice = null;
+    this.voiceLang = "";
+    this.voiceChosen = false; // the user picked their own voice in the dropdown
     this.currentBlock = null;
 
+    this.applyDefaultSelection();
     this.buildUI();
     this.loadVoices();
     // addEventListener, not onvoiceschanged: each player assigning the global
@@ -137,6 +141,7 @@ class TTSPlayer {
 
     if (settings.show_voice_selector) {
       this.voiceField = this.makeSelect([], STRINGS.voice, (val) => {
+        this.voiceChosen = true;
         const voices = this.synth.getVoices();
         this.voice = val === "" ? null : voices[Number(val)] || null;
         if (this.state === "playing" || this.state === "paused") {
@@ -209,7 +214,31 @@ class TTSPlayer {
       o.textContent = `${v.name} (${v.lang})`;
       select.append(o);
     });
-    select.value = prev;
+    if (!this.voiceChosen) {
+      // Voices can arrive late (Chrome loads them asynchronously), so the
+      // configured default is re-applied whenever the device reports them.
+      this.applyDefaultSelection();
+      const idx = voices.indexOf(this.voice);
+      select.value = idx >= 0 ? String(idx) : prev;
+    } else {
+      select.value = prev;
+    }
+  }
+
+  // Pick the starting voice from the theme settings: an explicit default
+  // voice, a fallback voice, then the platform's default language, then the
+  // first voice available on the device. A user's own choice wins over all.
+  applyDefaultSelection() {
+    if (this.voiceChosen) {
+      return;
+    }
+    const selection = selectVoice(this.synth.getVoices(), {
+      defaultVoice: settings.default_voice,
+      fallbackVoice: settings.fallback_voice,
+      platformLang: document.documentElement.lang,
+    });
+    this.voice = selection.voice;
+    this.voiceLang = selection.lang;
   }
 
   collectBlocks() {
@@ -303,8 +332,7 @@ class TTSPlayer {
 
     const utterance = new SpeechSynthesisUtterance(chunk.text);
     utterance.rate = this.rate;
-    utterance.lang =
-      this.voice?.lang || document.documentElement.lang || "en-US";
+    utterance.lang = this.voice?.lang || this.voiceLang || "en-US";
     if (this.voice) {
       utterance.voice = this.voice;
     }
