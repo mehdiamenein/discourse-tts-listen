@@ -22,6 +22,8 @@ it helps other communities a little bit too. Use it, fork it, improve it.
 - Play / pause / resume / stop, playback-speed control, optional voice picker
 - Configurable **default and fallback voice language** (drop-down of language codes)
 - Speech language follows the **platform's default language** (Discourse locale), not the visitor's browser — German-first communities get German voices automatically
+- Player controls are **localized via theme translations** (German on German forums, English on English forums); English is the fallback
+- **Keeps reading while you scroll** — posts re-rendered by Discourse as they scroll out of view and back never cut the voice off mid-sentence
 - Highlights the paragraph currently being read
 - Keyboard accessible, visible focus states, `aria-live` status announcements
 - Never autoplays; speech stops when you navigate away
@@ -117,9 +119,9 @@ spirit of this project: simple, dependency-free, on-device.
 
 ## Roadmap
 
+- [x] Translations via theme translations (`locales/*.yml`, currently English and German)
 - "Listen to whole topic" mode
 - Word-level highlighting via boundary events
-- Translations via theme translations
 - Optional server plugin to pre-generate MP3s with a cloud TTS
 
 ## License

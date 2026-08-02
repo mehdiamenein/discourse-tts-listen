@@ -1,22 +1,13 @@
 import { apiInitializer } from "discourse/lib/api";
+import { i18n } from "discourse-i18n";
+import { playerForElement, remapChunks } from "../lib/tts-lifecycle";
 import { selectVoice } from "../lib/tts-selection";
 
-const STRINGS = {
-  groupLabel: "Listen to this post",
-  listen: "Listen",
-  pause: "Pause",
-  resume: "Resume",
-  stop: "Stop",
-  speed: "Speed",
-  voice: "Voice",
-  defaultVoice: "Browser default",
-  unsupported: "Text-to-speech isn't supported by this browser.",
-  playing: "Reading post aloud…",
-  paused: "Paused",
-  finished: "Finished reading",
-  failed: "Text-to-speech failed.",
-  empty: "Nothing readable in this post.",
-};
+// UI strings come from the theme translations (locales/*.yml), so the player
+// speaks the platform's language: German forums get German controls, English
+// forums English ones. `themePrefix` is injected into theme modules by
+// Discourse (same as `settings`), so no import is needed.
+const T = (key) => i18n(themePrefix(`tts_listen.${key}`));
 
 const BLOCK_SELECTOR =
   "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th, figcaption";
@@ -28,13 +19,29 @@ const MAX_UTTERANCE_LENGTH = 250;
 // Only one post may speak at a time (speechSynthesis is global).
 let activePlayer = null;
 
+// Live players keyed by post id. Discourse removes posts from the DOM when
+// they scroll out of view ("cloaking") and renders them again when they
+// scroll back; this registry lets the player survive that re-render and keep
+// speaking instead of being cut off mid-sentence.
+const players = new Map();
+
+function stopAllPlayers() {
+  for (const player of [...players.values()]) {
+    player.stop();
+  }
+  players.clear();
+  // Also stops any unregistered player (created when the post model was
+  // unavailable, so it has no stable key).
+  window.speechSynthesis.cancel();
+}
+
 export default apiInitializer((api) => {
   const supported =
     "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 
   if (supported) {
     // Discourse is a single-page app: stop speaking on navigation.
-    api.onPageChange(() => window.speechSynthesis.cancel());
+    api.onPageChange(() => stopAllPlayers());
 
     // Workaround for a Chrome desktop bug that silently stops long playback.
     setInterval(() => {
@@ -56,32 +63,48 @@ export default apiInitializer((api) => {
         if (settings.show_unsupported_notice) {
           const note = document.createElement("p");
           note.className = "tts-unsupported";
-          note.textContent = STRINGS.unsupported;
+          note.textContent = T("unsupported");
           cooked.prepend(note);
         }
         return;
       }
 
-      let postNumber = null;
+      let post = null;
       try {
-        postNumber = helper?.getPost?.()?.post_number ?? null;
+        post = helper?.model ?? helper?.getPost?.() ?? null;
       } catch {
-        /* post model unavailable; label stays generic */
+        /* post model unavailable; player stays bound to this element */
+      }
+      const postNumber = post?.post_number ?? null;
+      const postId = post?.id ?? null;
+
+      // The same post may already have a live player: Discourse re-renders
+      // posts as they scroll out of view and back, and that must not cut off
+      // the voice. A still-speaking player is re-attached to this element;
+      // otherwise a fresh one is created.
+      const { player, reused } = playerForElement(
+        players,
+        postId,
+        () => new TTSPlayer(cooked, postNumber, postId)
+      );
+      if (reused) {
+        player.attach(cooked, postNumber);
       }
 
-      const player = new TTSPlayer(cooked, postNumber);
-
-      // Runs when the post is re-rendered or removed from the stream,
-      // so speech never keeps reading content that no longer exists.
-      return () => player.destroy();
+      // Runs when the post is re-rendered or removed from the stream. The
+      // player is only detached, not stopped: a re-rendered post (scrolled
+      // away and back) re-attaches it and the voice never breaks stride.
+      // Speech ends via stop(), finishing the post, or navigating away.
+      return () => player.detach();
     },
     { onlyStream: true }
   );
 });
 
 class TTSPlayer {
-  constructor(cooked, postNumber) {
+  constructor(cooked, postNumber, postId) {
     this.cooked = cooked;
+    this.postId = postId; // null when the post model is unavailable
     this.synth = window.speechSynthesis;
     this.postNumber = postNumber;
     this.blocks = [];
@@ -111,14 +134,14 @@ class TTSPlayer {
     root.setAttribute(
       "aria-label",
       this.postNumber
-        ? `${STRINGS.groupLabel} (post #${this.postNumber})`
-        : STRINGS.groupLabel
+        ? `${T("group_label")} (post #${this.postNumber})`
+        : T("group_label")
     );
 
-    this.playBtn = this.makeButton(STRINGS.listen, "tts-toggle", () =>
+    this.playBtn = this.makeButton(T("listen"), "tts-toggle", () =>
       this.toggle()
     );
-    this.stopBtn = this.makeButton(STRINGS.stop, "tts-stop", () => this.stop());
+    this.stopBtn = this.makeButton(T("stop"), "tts-stop", () => this.stop());
     this.stopBtn.disabled = true;
     root.append(this.playBtn, this.stopBtn);
 
@@ -128,7 +151,7 @@ class TTSPlayer {
         label: `${r}×`,
         selected: r === this.rate,
       })),
-      STRINGS.speed,
+      T("speed"),
       (val) => {
         this.rate = parseFloat(val);
         if (this.state === "playing" || this.state === "paused") {
@@ -140,7 +163,7 @@ class TTSPlayer {
     root.append(this.speedField.wrapper);
 
     if (settings.show_voice_selector) {
-      this.voiceField = this.makeSelect([], STRINGS.voice, (val) => {
+      this.voiceField = this.makeSelect([], T("voice"), (val) => {
         this.voiceChosen = true;
         const voices = this.synth.getVoices();
         this.voice = val === "" ? null : voices[Number(val)] || null;
@@ -216,7 +239,7 @@ class TTSPlayer {
     select.innerHTML = "";
     const def = document.createElement("option");
     def.value = "";
-    def.textContent = STRINGS.defaultVoice;
+    def.textContent = T("default_voice");
     select.append(def);
     voices.forEach((v, i) => {
       const o = document.createElement("option");
@@ -310,7 +333,7 @@ class TTSPlayer {
   start() {
     this.blocks = this.collectBlocks().flatMap((el) => this.chunkBlock(el));
     if (!this.blocks.length) {
-      this.announce(STRINGS.empty);
+      this.announce(T("empty"));
       return;
     }
     // iOS may only populate voices after the first user gesture.
@@ -365,7 +388,7 @@ class TTSPlayer {
       // eslint-disable-next-line no-console
       console.warn(`[tts-listen] speech synthesis failed: ${event.error}`);
       this.finish();
-      this.announce(STRINGS.failed); // after finish() so it isn't overwritten
+      this.announce(T("failed")); // after finish() so it isn't overwritten
     };
 
     // Speaking immediately after cancel() silently drops the utterance on
@@ -386,13 +409,55 @@ class TTSPlayer {
     if (activePlayer === this) {
       activePlayer = null;
     }
+    this.unregister();
     this.updateUI();
   }
 
-  // Called by Discourse when the post is re-rendered or removed.
-  destroy() {
-    this.stop();
+  // Called by Discourse when the post element is removed or re-rendered.
+  // Speech deliberately keeps going: a re-rendered post (scrolled out of
+  // view and back, stream updates) re-attaches the same player instead of
+  // starting over. The player is fully stopped by stop(), finish(), or
+  // navigating away.
+  detach() {
     this.synth.removeEventListener?.("voiceschanged", this.onVoicesChanged);
+    this.clearHighlight();
+    this.cooked = null;
+    // An idle player has nothing worth preserving across the re-render.
+    if (this.state !== "playing" && this.state !== "paused") {
+      this.unregister();
+    }
+  }
+
+  // Re-attach a still-speaking player to a freshly rendered post element.
+  // Only DOM bindings are refreshed — the reading position and voice state
+  // carry over untouched.
+  attach(cooked, postNumber) {
+    this.cooked = cooked;
+    this.postNumber = postNumber;
+
+    // The old block/chunk nodes are detached; re-collect from the fresh
+    // element so highlighting and the remaining speech track the new DOM.
+    if (this.blocks.length) {
+      const fresh = this.collectBlocks().flatMap((el) => this.chunkBlock(el));
+      this.blocks = remapChunks(this.blocks, fresh);
+    }
+
+    this.buildUI();
+    this.updateUI();
+    this.loadVoices();
+
+    this.onVoicesChanged = () => this.loadVoices();
+    this.synth.addEventListener?.("voiceschanged", this.onVoicesChanged);
+
+    if (this.blocks[this.index]) {
+      this.highlight(this.blocks[this.index].el);
+    }
+  }
+
+  unregister() {
+    if (this.postId != null && players.get(this.postId) === this) {
+      players.delete(this.postId);
+    }
   }
 
   finish() {
@@ -403,6 +468,7 @@ class TTSPlayer {
     if (activePlayer === this) {
       activePlayer = null;
     }
+    this.unregister();
     this.updateUI();
   }
 
@@ -425,10 +491,10 @@ class TTSPlayer {
 
   updateUI() {
     const labels = {
-      idle: STRINGS.listen,
-      playing: STRINGS.pause,
-      paused: STRINGS.resume,
-      done: STRINGS.listen,
+      idle: T("listen"),
+      playing: T("pause"),
+      paused: T("resume"),
+      done: T("listen"),
     };
     this.playBtn.textContent = labels[this.state];
     this.playBtn.setAttribute(
@@ -439,9 +505,9 @@ class TTSPlayer {
     this.announce(
       {
         idle: "",
-        playing: STRINGS.playing,
-        paused: STRINGS.paused,
-        done: STRINGS.finished,
+        playing: T("playing"),
+        paused: T("paused"),
+        done: T("finished"),
       }[this.state]
     );
   }

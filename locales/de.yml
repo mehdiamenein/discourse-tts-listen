@@ -1,0 +1,26 @@
+de:
+  theme_metadata:
+    description: "Fügt Beiträgen eine barrierefreie Schaltfläche „Anhören“ hinzu, die den Inhalt mit der integrierten Text-to-Speech-Funktion des Browsers (Web Speech API) vorliest. Keine externen Dienste, keine API-Schlüssel."
+    settings:
+      default_rate: "Standard-Abspielgeschwindigkeit (1 = normal)."
+      default_voice: "Bevorzugte Stimme-Sprache, gewählt aus der Liste (z. B. „de“ oder „de-DE“). „auto“ verwendet die Standardsprache der Plattform, wenn keine passende Stimme vorhanden ist."
+      fallback_voice: "Zweitgewählte Stimme-Sprache, verwendet wenn für die Standardsprache keine passende Stimme auf dem Gerät des Besuchers vorhanden ist."
+      show_voice_selector: "Besuchern erlauben, aus den auf ihrem Gerät installierten Stimmen zu wählen."
+      skip_code_blocks: "Codeblöcke nicht vorlesen."
+      skip_quotes: "Zitierte Inhalte nicht vorlesen."
+      show_unsupported_notice: "Einen kurzen Hinweis auf Beiträgen anzeigen, wenn der Browser des Besuchers keine Text-to-Speech-Funktion unterstützt (andernfalls wird die Schaltfläche einfach ausgeblendet)."
+  tts_listen:
+    group_label: "Diesen Beitrag anhören"
+    listen: "Anhören"
+    pause: "Pause"
+    resume: "Fortsetzen"
+    stop: "Stopp"
+    speed: "Geschwindigkeit"
+    voice: "Stimme"
+    default_voice: "Browser-Standard"
+    unsupported: "Text-to-Speech wird von diesem Browser nicht unterstützt."
+    playing: "Beitrag wird vorgelesen…"
+    paused: "Pausiert"
+    finished: "Vorlesen beendet"
+    failed: "Text-to-Speech ist fehlgeschlagen."
+    empty: "In diesem Beitrag gibt es nichts Vorzulesendes."

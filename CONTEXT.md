@@ -42,3 +42,15 @@ _Avoid_: voice fallback, voice preference
 The single listen player that may speak at a time. Starting one player stops
 any other.
 _Avoid_: current player, speaking player
+
+**Re-render**:
+Discourse removes posts from the DOM when they scroll out of view
+("cloaking") and renders them again when they scroll back. The player
+survives this: a still-speaking player is detached, then re-attached to the
+fresh element — the voice never breaks stride.
+_Avoid_: refresh, rerender of the browser
+
+**Theme translations**:
+The `locales/*.yml` files that localize the player's controls to the
+platform's language, looked up via `themePrefix` + `i18n()`.
+_Avoid_: i18n keys, strings file
