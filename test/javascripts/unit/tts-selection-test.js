@@ -1,5 +1,5 @@
 import { module, test } from "qunit";
-import { selectVoice } from "../../../javascripts/discourse/lib/tts-selection";
+import { selectVoice } from "../../../discourse/lib/tts-selection";
 
 const VOICES = [
   { name: "Google US English", lang: "en-US" },
