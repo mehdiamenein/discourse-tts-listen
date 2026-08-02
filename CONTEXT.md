@@ -28,8 +28,9 @@ in. Voice selection targets this language, not the visitor's browser locale.
 _Avoid_: browser language, site language, locale
 
 **Default voice / Fallback voice**:
-The two theme settings that pin a preferred voice, matched against device voice
-names or language codes.
+The two theme settings that pin a preferred voice language, chosen from a
+drop-down of language codes (e.g. `de` or `de-DE`). `auto` means no
+preference: follow the platform language.
 
 **Voice selection priority**:
 The order in which the player picks its starting voice: default voice setting →

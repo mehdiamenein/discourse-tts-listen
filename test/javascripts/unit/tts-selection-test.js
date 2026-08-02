@@ -9,33 +9,67 @@ const VOICES = [
 ];
 
 module("TTS Listen | Unit | selectVoice", function () {
-  test("uses the configured default voice when it is available", function (assert) {
-    const result = selectVoice(VOICES, { defaultVoice: "deutsch" });
+  test("selects a voice speaking the exact language code from the drop-down", function (assert) {
+    const result = selectVoice(VOICES, { defaultVoice: "de-DE" });
 
     assert.strictEqual(result.voice, VOICES[1]);
     assert.strictEqual(result.lang, "de-DE");
   });
 
-  test("matches the default voice case-insensitively", function (assert) {
-    const result = selectVoice(VOICES, { defaultVoice: "DEUTSCH" });
-
-    assert.strictEqual(result.voice, VOICES[1]);
-  });
-
-  test("accepts a bare language code as the default voice", function (assert) {
+  test("a primary-subtag code from the drop-down matches regional voices", function (assert) {
     const result = selectVoice(VOICES, { defaultVoice: "de" });
 
     assert.strictEqual(result.voice, VOICES[1]);
   });
 
-  test("falls back to the fallback voice when the default has no match", function (assert) {
+  test("matches drop-down codes case-insensitively", function (assert) {
+    const result = selectVoice(VOICES, { defaultVoice: "DE" });
+
+    assert.strictEqual(result.voice, VOICES[1]);
+  });
+
+  test("prefers the exact regional code over a regional variant", function (assert) {
+    const mixed = [
+      { name: "Austrian", lang: "de-AT" },
+      { name: "German", lang: "de-DE" },
+    ];
+    const result = selectVoice(mixed, { defaultVoice: "de-DE" });
+
+    assert.strictEqual(result.voice, mixed[1]);
+  });
+
+  test("falls back to the fallback language when the default has no matching voice", function (assert) {
     const result = selectVoice(VOICES, {
-      defaultVoice: "Aussie Larry",
-      fallbackVoice: "katja",
+      defaultVoice: "pt",
+      fallbackVoice: "de",
     });
 
-    assert.strictEqual(result.voice, VOICES[2]);
+    assert.strictEqual(result.voice, VOICES[1]);
     assert.strictEqual(result.lang, "de-DE");
+  });
+
+  // Regression guard: the drop-down values are language codes, so they must
+  // be matched against the voice's *language*, never fuzzy-matched against
+  // its name (a bare "hi" would otherwise match "This is a test voice").
+  test("does not match drop-down codes against voice names", function (assert) {
+    const voices = [
+      { name: "This is a test voice", lang: "en-US" },
+      { name: "Google Hindi", lang: "hi-IN" },
+    ];
+    const result = selectVoice(voices, { defaultVoice: "hi" });
+
+    assert.strictEqual(result.voice, voices[1]);
+    assert.strictEqual(result.lang, "hi-IN");
+  });
+
+  test("treats the auto (no-preference) drop-down value as no preference", function (assert) {
+    const result = selectVoice(VOICES, {
+      defaultVoice: "auto",
+      fallbackVoice: "auto",
+      platformLang: "fr",
+    });
+
+    assert.strictEqual(result.voice, VOICES[3]);
   });
 
   test("prefers the platform language when no voice is configured", function (assert) {
