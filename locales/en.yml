@@ -16,6 +16,7 @@ en:
     resume: "Resume"
     stop: "Stop"
     speed: "Speed"
+    default_speed: "Default"
     voice: "Voice"
     default_voice: "Browser default"
     unsupported: "Text-to-speech isn't supported by this browser."

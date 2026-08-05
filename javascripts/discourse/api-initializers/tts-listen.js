@@ -2,6 +2,7 @@ import { apiInitializer } from "discourse/lib/api";
 import { i18n } from "discourse-i18n";
 import { playerForElement, remapChunks } from "../lib/tts-lifecycle";
 import { selectVoice } from "../lib/tts-selection";
+import { buildSpeedOptions, DEFAULT_VALUE } from "../lib/tts-speed";
 
 // UI strings come from the theme translations (locales/*.yml), so the player
 // speaks the platform's language: German forums get German controls, English
@@ -18,6 +19,11 @@ const MAX_UTTERANCE_LENGTH = 250;
 
 // Only one post may speak at a time (speechSynthesis is global).
 let activePlayer = null;
+
+// Per-browser override for the playback speed. Absent means "use the admin's
+// default_rate"; present means the visitor picked their own speed. Cleared by
+// selecting the "Default" drop-down entry (mirrors the voice override).
+const RATE_STORAGE_KEY = "tts_listen_rate";
 
 // Live players keyed by post id. Discourse removes posts from the DOM when
 // they scroll out of view ("cloaking") and renders them again when they
@@ -111,7 +117,7 @@ class TTSPlayer {
     this.index = 0;
     this.state = "idle"; // idle | playing | paused | done
     this.gen = 0; // invalidates stale utterance callbacks after cancel/restart
-    this.rate = Number(settings.default_rate) || 1;
+    this.rate = this.loadPersistedRate();
     this.voice = null;
     this.voiceLang = "";
     this.voiceChosen = false; // the user picked their own voice in the dropdown
@@ -146,14 +152,21 @@ class TTSPlayer {
     root.append(this.playBtn, this.stopBtn);
 
     this.speedField = this.makeSelect(
-      [0.75, 1, 1.25, 1.5, 2].map((r) => ({
-        value: String(r),
-        label: `${r}×`,
-        selected: r === this.rate,
-      })),
+      buildSpeedOptions({
+        selectedRate: this.rate,
+        defaultLabel: T("default_speed"),
+      }),
       T("speed"),
       (val) => {
-        this.rate = parseFloat(val);
+        if (val === DEFAULT_VALUE) {
+          // "Default" reverts to the admin's default_rate and drops the
+          // per-browser override.
+          this.clearPersistedRate();
+          this.rate = Number(settings.default_rate) || 1;
+        } else {
+          this.rate = parseFloat(val);
+          this.writePersistedRate(this.rate);
+        }
         if (this.state === "playing" || this.state === "paused") {
           this.state = "playing";
           this.speakCurrent(); // restart current block at the new speed
@@ -249,6 +262,42 @@ class TTSPlayer {
     });
     const idx = voices.indexOf(this.voice);
     select.value = idx >= 0 ? String(idx) : prev;
+  }
+
+  // Per-browser playback-speed override, persisted in localStorage. Absent
+  // means "use the admin's default_rate"; selecting "Default" in the drop-down
+  // clears it and falls back to default_rate. A concrete choice is stored as
+  // a plain number string so it round-trips through parseFloat unchanged.
+  loadPersistedRate() {
+    try {
+      const stored = window.localStorage?.getItem(RATE_STORAGE_KEY);
+      if (stored != null && stored !== "") {
+        const rate = parseFloat(stored);
+        if (Number.isFinite(rate)) {
+          return rate;
+        }
+      }
+    } catch {
+      // localStorage may be unavailable (private mode, sandboxed iframe);
+      // fall back to the setting silently.
+    }
+    return Number(settings.default_rate) || 1;
+  }
+
+  writePersistedRate(rate) {
+    try {
+      window.localStorage?.setItem(RATE_STORAGE_KEY, String(rate));
+    } catch {
+      /* storage unavailable; the in-memory rate still applies this session */
+    }
+  }
+
+  clearPersistedRate() {
+    try {
+      window.localStorage?.removeItem(RATE_STORAGE_KEY);
+    } catch {
+      /* storage unavailable; nothing to clear */
+    }
   }
 
   // Pick the starting voice from the theme settings: an explicit default
