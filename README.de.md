@@ -127,6 +127,18 @@ Die Auswahlliste, in dieser Reihenfolge
 überspringt Schritt 2 und gibt Schritt 3 frei, sodass ein deutsches Forum mit
 der Administration auf `auto` trotzdem deutsche Stimmen erhält.
 
+Innerhalb der aufgelösten Sprache bevorzugt die Komponente dann eine
+**plattformspezifische empfohlene Stimme** aus einem vendoring-kuratierten
+Index ([ADR 0008](docs/adr/0008-per-platform-recommended-voice.de.md)): z. B.
+`Anna` auf macOS, `Microsoft Katja - German (Germany)` unter Windows, die
+sehr hochwertige Edge-Online-Stimme in Edge. Der Index stammt aus dem
+[Readium-Speech](https://github.com/readium/speech)-Projekt und ist nach der
+erkannten Plattform (OS/Browser) gegliedert. Ist für die Plattform keine
+empfohlene Stimme installiert, fällt der Player auf irgendeine Stimme der
+Sprache zurück — das heutige Verhalten —, sodass dies die Vorgabe nur
+verbessert, nie verschlechtert. Der Admin konfiguriert weiterhin nur eine
+Sprache; der Index wird von der Komponente geliefert, nicht vom Admin gesetzt.
+
 ### Abspielgeschwindigkeit
 
 Das Geschwindigkeits-Dropdown bietet `0,1×`–`2,0×` in `0,1`-Schritten (20
