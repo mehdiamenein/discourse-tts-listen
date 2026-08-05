@@ -3,8 +3,7 @@ en:
     description: "Adds an accessible 'Listen' button to posts using the browser's built-in text-to-speech (Web Speech API). No external services, no API keys."
     settings:
       default_rate: "Default playback speed (1 = normal)."
-      default_voice: "Preferred voice language, chosen from the list (e.g. 'de' or 'de-DE'). 'auto' follows the platform's default language when no matching voice exists."
-      fallback_voice: "Second-choice voice language, used when the default language has no matching voice on the visitor's device."
+      default_voice: "Preferred voice language (the player tries this first)."
       show_voice_selector: "Let users pick from the voices installed on their device."
       skip_code_blocks: "Don't read code blocks aloud."
       skip_quotes: "Don't read quoted content aloud."
