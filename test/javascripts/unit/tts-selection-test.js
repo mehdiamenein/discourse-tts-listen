@@ -477,13 +477,20 @@ module("TTS Listen | Unit | groupVoicesByLang", function () {
   });
 
   // Android reports underscore locales (de_DE) and Firefox three-letter
-  // primaries (deu-DEU-f00); both normalize to the same key as the hyphenated
+  // primaries (deu-DE); both normalize to the same key as the hyphenated
   // two-letter code and so land in the same <optgroup>.
+  //
+  // normalizeLang maps only the *primary* subtag and leaves the region and
+  // any variant intact (ADR 0006): a fully-Firefox code like "deu-DEU-f00"
+  // normalizes to "de-deu-f00" — its own group — and is matched against a
+  // configured "de-DE" only via the family-prefix step in findForLang. So a
+  // Firefox voice with a two-letter region is the case that shares a group
+  // with its two-letter siblings.
   test("groups voices whose lang codes normalize to the same key", function (assert) {
     const voices = [
       { name: "Chrome German", lang: "de-DE" },
       { name: "Android German", lang: "de_DE" },
-      { name: "Firefox German", lang: "deu-DEU-f00" },
+      { name: "Firefox German", lang: "deu-DE" },
     ];
     const groups = groupVoicesByLang(voices);
 
