@@ -5,7 +5,7 @@
 // it does not linger as an orphan key in site settings.
 export default function migrate(settings) {
   if (settings.has("fallback_voice")) {
-    settings.remove("fallback_voice");
+    settings.delete("fallback_voice");
   }
   return settings;
 }
