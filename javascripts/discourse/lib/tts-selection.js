@@ -1,57 +1,132 @@
 // Pure, dependency-free voice selection for the TTS player.
 //
 // Kept separate from the UI code so it can be unit-tested in isolation.
-// It decides which device voice to speak with, in priority order:
-//   1. the configured default language (a language code from the settings
-//      drop-down, matched by exact code then language family)
-//   2. the configured fallback language
-//   3. the first voice matching the platform's default language
-//      (document.documentElement.lang — the Discourse site locale)
-//   4. the first available voice on the device
-// If the browser provides no voices at all, `voice` is null and the caller
-// falls back to the platform language (or en-US).
+// It decides which device voice to speak with, following the selection
+// ladder (ADR 0006):
+//   1. userVoice — the visitor's persisted override. Match the exact
+//      {lang, name} identity, then any voice of that language, then fall
+//      through to the automatic ladder.
+//   2. defaultVoice — the admin's configured default language (a language
+//      code from the settings drop-down). Only when it is not "auto".
+//   3. platformLang — the platform's default language
+//      (document.documentElement.lang — the Discourse site locale). Only
+//      when defaultVoice is "auto": the platform language is a guarded
+//      step, never a silent second choice after a configured default.
+//   4. browserLangs — navigator.languages, in order, each matched against
+//      real, normalized voices. The spec-recommended visitor-preference
+//      signal (Accept-Language), safe at the terminal because every admin
+//      and platform option has already failed.
+//   5. list[0] — TEMPORARY terminal fallback so the player still speaks
+//      when nothing above matches. Removed in issue #18 in favour of the
+//      no-voice notice.
+// `matched` is true when a voice was selected by a matching step (1–4) and
+// false when the ladder fell through to list[0] (or found no voice at all).
 //
 // Settings are language codes, never voice names: codes like "de-DE" are
 // universal across browsers and devices, while voice names ("Google Deutsch",
 // "Microsoft Katja", …) differ per browser, OS and device and change over
-// time. A user's own choice from the on-device voice list always wins anyway
-// (the player stops re-applying this ladder once one is made).
+// time. A user's own choice persists as a {lang, name} identity and always
+// wins (the player stops re-applying this ladder once one is made).
 
 /**
  * @param {Array<{ name: string, lang: string }>} voices
  *   Voices reported by `speechSynthesis.getVoices()`.
  * @param {object} options
+ * @param {{ lang: string, name: string } | null} [options.userVoice]
+ *   The visitor's persisted voice identity. Matched exactly, then by
+ *   language, then falls through. `null` means no override.
  * @param {string} [options.defaultVoice]
  *   Setting value: a language code to prefer; "" or "auto" means none.
- * @param {string} [options.fallbackVoice]
- *   Setting value used when `defaultVoice` has no match.
  * @param {string} [options.platformLang]
  *   The platform's default language, e.g. "de" or "de-DE".
- * @returns {{ voice: ({ name: string, lang: string } | null), lang: string }}
- *   The chosen voice (or null) and the language to speak with.
+ * @param {string[]} [options.browserLangs]
+ *   `navigator.languages`, in preference order.
+ * @returns {{ voice: ({ name: string, lang: string } | null), lang: string, matched: boolean }}
+ *   The chosen voice (or null), the language to speak with, and whether a
+ *   configured preference actually matched.
  */
 export function selectVoice(
   voices,
-  { defaultVoice = "", fallbackVoice = "", platformLang = "" } = {}
+  {
+    userVoice = null,
+    defaultVoice = "auto",
+    platformLang = "",
+    browserLangs = [],
+  } = {}
 ) {
   const list = Array.isArray(voices) ? voices : [];
+  const browsers = Array.isArray(browserLangs)
+    ? browserLangs.filter(Boolean)
+    : [];
 
-  const bySetting =
-    findForLang(list, defaultVoice) || findForLang(list, fallbackVoice);
-  if (bySetting) {
-    return { voice: bySetting, lang: bySetting.lang };
+  // 1. User override: exact identity, then any voice of that language, then
+  //    fall through to the automatic ladder below.
+  if (userVoice) {
+    const userLang = normalizeLang(userVoice.lang);
+    const exact =
+      userLang &&
+      list.find(
+        (voice) =>
+          normalizeLang(voice.lang) === userLang &&
+          voice.name === userVoice.name
+      );
+    if (exact) {
+      return { voice: exact, lang: exact.lang, matched: true };
+    }
+    const sameLang = findForLang(list, userVoice.lang);
+    if (sameLang) {
+      return { voice: sameLang, lang: sameLang.lang, matched: true };
+    }
   }
 
-  const byLanguage = findForLang(list, platformLang);
-  if (byLanguage) {
-    return { voice: byLanguage, lang: byLanguage.lang };
+  // 2. Admin default language — only when it is not "auto". "auto" (and an
+  //    empty setting) means "no admin preference": skip straight to the
+  //    platform language.
+  const defaultIsAuto = isAutoValue(defaultVoice);
+  if (!defaultIsAuto) {
+    const byDefault = findForLang(list, defaultVoice);
+    if (byDefault) {
+      return { voice: byDefault, lang: byDefault.lang, matched: true };
+    }
   }
 
+  // 3. Platform language — only when the admin default is "auto". This is
+  //    the auto-gates-platform rule: a configured default that has no voice
+  //    never silently swaps to the platform's language; it falls through to
+  //    the browser languages instead.
+  if (defaultIsAuto) {
+    const byPlatform = findForLang(list, platformLang);
+    if (byPlatform) {
+      return { voice: byPlatform, lang: byPlatform.lang, matched: true };
+    }
+  }
+
+  // 4. Browser languages, in preference order.
+  for (const browserLang of browsers) {
+    const byBrowser = findForLang(list, browserLang);
+    if (byBrowser) {
+      return { voice: byBrowser, lang: byBrowser.lang, matched: true };
+    }
+  }
+
+  // 5. TEMPORARY terminal fallback (removed in issue #18). When nothing above
+  //    matched, speak with the first device voice so the player still works;
+  //    `matched: false` tells a future notice that this was an unmatched
+  //    pick, not a configured preference.
   if (list.length > 0) {
-    return { voice: list[0], lang: list[0].lang };
+    return { voice: list[0], lang: list[0].lang, matched: false };
   }
 
-  return { voice: null, lang: platformLang || "en-US" };
+  return { voice: null, lang: platformLang || "en-US", matched: false };
+}
+
+// An admin setting of "auto" (or empty) means "no preference": the platform
+// language step is unlocked and the configured-default step is skipped.
+// Normalized so case and stray whitespace never make "Auto" or "  " behave
+// like a real language code.
+function isAutoValue(value) {
+  const normalized = normalizeLang(value);
+  return normalized === "" || normalized === "auto";
 }
 
 // Map Firefox's ISO 639-2 three-letter primary subtags to the two-letter
