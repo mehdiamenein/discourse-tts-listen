@@ -175,8 +175,8 @@ function isAutoValue(value) {
 // terminologic (T) and bibliographic (B) variants are listed where they
 // differ, since Firefox is not consistent. Only the *primary* subtag is
 // mapped; the region and any variant are left intact — matching is the job
-// of findForLang, and a normalized code never carries less information than
-// the original.
+// of collectForLang, and a normalized code never carries less information
+// than the original.
 const PRIMARY_TO_TWO_LETTER = {
   // Germanic
   deu: "de",
@@ -244,7 +244,7 @@ const PRIMARY_TO_TWO_LETTER = {
 // Normalize a voice or setting language code for matching: lower-case it,
 // turn Android's underscores into hyphens, and map Firefox's three-letter
 // primary to the two-letter drop-down code. Empty/missing input normalizes
-// to an empty string so findForLang can short-circuit on it.
+// to an empty string so collectForLang can short-circuit on it.
 export function normalizeLang(code) {
   const normalized = String(code || "")
     .trim()
