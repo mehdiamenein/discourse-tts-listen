@@ -133,6 +133,7 @@ class TTSPlayer {
     this.voice = null;
     this.voiceLang = "";
     this.matched = false; // a configured preference actually resolved a voice
+    this.voicesLoaded = false; // the device has reported at least one voice
     this.voiceChosen = false; // the user picked their own voice in the dropdown
     this.currentBlock = null;
 
@@ -292,6 +293,7 @@ class TTSPlayer {
     if (!voices.length) {
       return; // still waiting; voiceschanged will fire again
     }
+    this.voicesLoaded = true;
     const select = this.voiceField.select;
     select.innerHTML = "";
 
@@ -709,7 +711,14 @@ class TTSPlayer {
     if (!this.noVoiceNotice) {
       return;
     }
-    const show = !this.matched && Boolean(settings.show_no_voice_notice);
+    // Only show once the device has actually reported voices: getVoices()
+    // returns [] on the first call in Chrome/Edge/Firefox and only populates
+    // asynchronously via voiceschanged, so a bare !matched check would flash
+    // the notice on every first page load even when a matching voice exists.
+    const show =
+      this.voicesLoaded &&
+      !this.matched &&
+      Boolean(settings.show_no_voice_notice);
     if (show) {
       this.noVoiceNotice.textContent = T("no_voice", {
         language: this.voiceLang || "",
