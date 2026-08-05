@@ -9,6 +9,7 @@ en:
       skip_code_blocks: "Don't read code blocks aloud."
       skip_quotes: "Don't read quoted content aloud."
       show_unsupported_notice: "Show a short notice on posts when the visitor's browser has no text-to-speech support (otherwise the button is simply hidden)."
+      show_no_voice_notice: "Show a small red notice when no installed voice speaks the configured language, and let the visitor pick one from the drop-down (otherwise the player just stays idle)."
   tts_listen:
     group_label: "Listen to this post"
     listen: "Listen"
@@ -25,3 +26,4 @@ en:
     finished: "Finished reading"
     failed: "Text-to-speech failed."
     empty: "Nothing readable in this post."
+    no_voice: "No voice for %{language} is installed on this device — pick one from the list."

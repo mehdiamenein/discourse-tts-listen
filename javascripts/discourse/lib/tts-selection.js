@@ -16,11 +16,13 @@
 //      real, normalized voices. The spec-recommended visitor-preference
 //      signal (Accept-Language), safe at the terminal because every admin
 //      and platform option has already failed.
-//   5. list[0] — TEMPORARY terminal fallback so the player still speaks
-//      when nothing above matches. Removed in issue #18 in favour of the
-//      no-voice notice.
+//   5. No voice. When nothing above matches, the ladder returns
+//      {voice: null, matched: false} with the configured language it was
+//      trying to satisfy; the player renders the no-voice notice (issue
+//      #18) instead of silently switching to list[0].
 // `matched` is true when a voice was selected by a matching step (1–4) and
-// false when the ladder fell through to list[0] (or found no voice at all).
+// false when the ladder found no voice at all — never list[0], which is
+// an unreliable, unspecified terminal fallback (ADR 0006).
 //
 // Settings are language codes, never voice names: codes like "de-DE" are
 // universal across browsers and devices, while voice names ("Google Deutsch",
@@ -42,8 +44,9 @@
  * @param {string[]} [options.browserLangs]
  *   `navigator.languages`, in preference order.
  * @returns {{ voice: ({ name: string, lang: string } | null), lang: string, matched: boolean }}
- *   The chosen voice (or null), the language to speak with, and whether a
- *   configured preference actually matched.
+ *   The chosen voice (or null when nothing matches), the language to speak
+ *   with (the configured preference the device could not satisfy when no
+ *   voice matches), and whether a configured preference actually matched.
  */
 export function selectVoice(
   voices,
@@ -109,15 +112,18 @@ export function selectVoice(
     }
   }
 
-  // 5. TEMPORARY terminal fallback (removed in issue #18). When nothing above
-  //    matched, speak with the first device voice so the player still works;
-  //    `matched: false` tells a future notice that this was an unmatched
-  //    pick, not a configured preference.
-  if (list.length > 0) {
-    return { voice: list[0], lang: list[0].lang, matched: false };
-  }
-
-  return { voice: null, lang: platformLang || "en-US", matched: false };
+  // 5. No voice. list[0] is deliberately not used as a terminal fallback:
+  //    its order and value are unspecified or inconsistent across
+  //    implementations (ADR 0006), so the player shows the no-voice notice
+  //    instead of silently speaking the wrong language. The returned
+  //    `lang` is the configured preference the device could not satisfy —
+  //    the visitor's own override, then the admin's default, then the
+  //    platform language — so the notice can name exactly what is missing.
+  const intendedLang =
+    (userVoice && userVoice.lang) ||
+    (!defaultIsAuto ? defaultVoice : "") ||
+    platformLang;
+  return { voice: null, lang: intendedLang || "en-US", matched: false };
 }
 
 // An admin setting of "auto" (or empty) means "no preference": the platform

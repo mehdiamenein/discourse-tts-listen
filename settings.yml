@@ -155,3 +155,7 @@ skip_quotes:
 show_unsupported_notice:
   type: bool
   default: false
+
+show_no_voice_notice:
+  type: bool
+  default: true
