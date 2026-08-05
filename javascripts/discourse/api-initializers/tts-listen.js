@@ -166,8 +166,11 @@ class TTSPlayer {
     root.append(this.playBtn, this.stopBtn);
 
     this.speedField = this.makeSelect(
+      // Pre-select the "Default" entry when no per-browser rate override
+      // is persisted, mirroring the voice dropdown's revert semantics; a
+      // concrete default_rate is a fallback value, not a chosen one.
       buildSpeedOptions({
-        selectedRate: this.rate,
+        selectedRate: this.hasPersistedRate() ? this.rate : null,
         defaultLabel: T("default_speed"),
       }),
       T("speed"),
@@ -371,6 +374,21 @@ class TTSPlayer {
       window.localStorage?.removeItem(RATE_STORAGE_KEY);
     } catch {
       /* storage unavailable; nothing to clear */
+    }
+  }
+
+  // Whether a per-browser rate override is persisted. buildUI uses this to
+  // decide whether to pre-select a grid value or the leading "Default"
+  // entry, since loadPersistedRate() always resolves to a concrete number.
+  hasPersistedRate() {
+    try {
+      const stored = window.localStorage?.getItem(RATE_STORAGE_KEY);
+      return (
+        stored != null && stored !== "" && Number.isFinite(parseFloat(stored))
+      );
+    } catch {
+      /* localStorage unavailable; treat as no override */
+      return false;
     }
   }
 
