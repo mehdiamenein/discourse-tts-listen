@@ -1,13 +1,16 @@
 import { apiInitializer } from "discourse/lib/api";
 import { i18n } from "discourse-i18n";
 import { playerForElement, remapChunks } from "../lib/tts-lifecycle";
-import { selectVoice } from "../lib/tts-selection";
+import { groupVoicesByLang, selectVoice } from "../lib/tts-selection";
+import { buildSpeedOptions, DEFAULT_VALUE } from "../lib/tts-speed";
 
 // UI strings come from the theme translations (locales/*.yml), so the player
 // speaks the platform's language: German forums get German controls, English
 // forums English ones. `themePrefix` is injected into theme modules by
-// Discourse (same as `settings`), so no import is needed.
-const T = (key) => i18n(themePrefix(`tts_listen.${key}`));
+// Discourse (same as `settings`), so no import is needed. The optional
+// `options` object is forwarded to `i18n` for `%{name}` interpolation (used by
+// the no-voice notice, which names the configured language).
+const T = (key, options) => i18n(themePrefix(`tts_listen.${key}`), options);
 
 const BLOCK_SELECTOR =
   "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th, figcaption";
@@ -18,6 +21,19 @@ const MAX_UTTERANCE_LENGTH = 250;
 
 // Only one post may speak at a time (speechSynthesis is global).
 let activePlayer = null;
+
+// Per-browser override for the playback speed. Absent means "use the admin's
+// default_rate"; present means the visitor picked their own speed. Cleared by
+// selecting the "Default" drop-down entry (mirrors the voice override).
+const RATE_STORAGE_KEY = "tts_listen_rate";
+
+// Per-browser override for the speaking voice, stored as a {lang, name}
+// identity (ADR 0006). Absent means "use the automatic ladder"; present means
+// the visitor picked their own voice. Cleared by selecting the
+// "Default (admin)" drop-down entry, which re-runs the automatic ladder so a
+// later admin change is picked up again. An identity — never an index —
+// survives a different device or a reordered voice list.
+const VOICE_STORAGE_KEY = "tts_listen_voice";
 
 // Live players keyed by post id. Discourse removes posts from the DOM when
 // they scroll out of view ("cloaking") and renders them again when they
@@ -111,9 +127,13 @@ class TTSPlayer {
     this.index = 0;
     this.state = "idle"; // idle | playing | paused | done
     this.gen = 0; // invalidates stale utterance callbacks after cancel/restart
-    this.rate = Number(settings.default_rate) || 1;
+    this.rate = this.loadPersistedRate();
+    this.userVoice = this.loadPersistedVoice();
+    this.voiceOptions = []; // flat voice list backing the grouped drop-down
     this.voice = null;
     this.voiceLang = "";
+    this.matched = false; // a configured preference actually resolved a voice
+    this.voicesLoaded = false; // the device has reported at least one voice
     this.voiceChosen = false; // the user picked their own voice in the dropdown
     this.currentBlock = null;
 
@@ -146,14 +166,24 @@ class TTSPlayer {
     root.append(this.playBtn, this.stopBtn);
 
     this.speedField = this.makeSelect(
-      [0.75, 1, 1.25, 1.5, 2].map((r) => ({
-        value: String(r),
-        label: `${r}×`,
-        selected: r === this.rate,
-      })),
+      // Pre-select the "Default" entry when no per-browser rate override
+      // is persisted, mirroring the voice dropdown's revert semantics; a
+      // concrete default_rate is a fallback value, not a chosen one.
+      buildSpeedOptions({
+        selectedRate: this.hasPersistedRate() ? this.rate : null,
+        defaultLabel: T("default_speed"),
+      }),
       T("speed"),
       (val) => {
-        this.rate = parseFloat(val);
+        if (val === DEFAULT_VALUE) {
+          // "Default" reverts to the admin's default_rate and drops the
+          // per-browser override.
+          this.clearPersistedRate();
+          this.rate = Number(settings.default_rate) || 1;
+        } else {
+          this.rate = parseFloat(val);
+          this.writePersistedRate(this.rate);
+        }
         if (this.state === "playing" || this.state === "paused") {
           this.state = "playing";
           this.speakCurrent(); // restart current block at the new speed
@@ -164,13 +194,31 @@ class TTSPlayer {
 
     if (settings.show_voice_selector) {
       this.voiceField = this.makeSelect([], T("voice"), (val) => {
-        this.voiceChosen = true;
-        const voices = this.synth.getVoices();
-        this.voice = val === "" ? null : voices[Number(val)] || null;
+        if (val === "") {
+          // "Default (admin)": drop the per-browser override and re-run the
+          // automatic ladder, so a later admin change is picked up again.
+          this.clearPersistedVoice();
+          this.userVoice = null;
+          this.voiceChosen = false;
+          this.applyDefaultSelection();
+        } else {
+          const voice = this.voiceOptions[Number(val)];
+          if (voice) {
+            this.voice = voice;
+            this.voiceLang = voice.lang;
+            this.voiceChosen = true;
+            this.matched = true; // the visitor picked a usable voice
+            // Persist a {lang, name} identity, never an index: it survives a
+            // reordered or differently-populated voice list.
+            this.userVoice = { lang: voice.lang, name: voice.name };
+            this.writePersistedVoice(this.userVoice);
+          }
+        }
         if (this.state === "playing" || this.state === "paused") {
           this.state = "playing";
-          this.speakCurrent();
+          this.speakCurrent(); // restart current block in the new voice
         }
+        this.updateUI();
       });
       root.append(this.voiceField.wrapper);
     }
@@ -180,6 +228,16 @@ class TTSPlayer {
     this.status.className = "tts-sr-only";
     this.status.setAttribute("aria-live", "polite");
     root.append(this.status);
+
+    // Non-dismissible inline notice shown when no installed voice speaks the
+    // configured language (issue #18). It stays until the visitor picks a
+    // voice from the drop-down or a matching voice appears; it carries the
+    // configured language so the visitor knows exactly what is missing.
+    this.noVoiceNotice = document.createElement("p");
+    this.noVoiceNotice.className = "tts-no-voice";
+    this.noVoiceNotice.setAttribute("role", "status");
+    this.noVoiceNotice.hidden = true;
+    root.append(this.noVoiceNotice);
 
     this.cooked.prepend(root);
     this.updateUI();
@@ -220,9 +278,13 @@ class TTSPlayer {
     // Chrome populates voices asynchronously (and iOS only after a user
     // gesture), so the configured default is re-applied whenever the device
     // reports them — including when the voice selector is hidden, which is
-    // otherwise the only path that never re-runs this. A user's own choice
-    // in the dropdown still wins (applyDefaultSelection bails out then).
+    // otherwise the only path that never re-runs this. The persisted user
+    // override is re-read here too, so clearing it (in another tab or by
+    // picking "Default") takes effect on the next voiceschanged. A user's
+    // own choice in the dropdown still wins (applyDefaultSelection bails out
+    // then).
     if (!this.voiceChosen) {
+      this.userVoice = this.loadPersistedVoice();
       this.applyDefaultSelection();
     }
 
@@ -234,39 +296,166 @@ class TTSPlayer {
     if (!voices.length) {
       return; // still waiting; voiceschanged will fire again
     }
+    this.voicesLoaded = true;
     const select = this.voiceField.select;
-    const prev = select.value;
     select.innerHTML = "";
+
+    // Top "Default (admin)" entry: clears the persisted override and re-runs
+    // the automatic ladder, so a later admin change is picked up again.
     const def = document.createElement("option");
     def.value = "";
-    def.textContent = T("default_voice");
+    def.textContent = T("default_voice_option");
     select.append(def);
-    voices.forEach((v, i) => {
-      const o = document.createElement("option");
-      o.value = String(i);
-      o.textContent = `${v.name} (${v.lang})`;
-      select.append(o);
-    });
-    const idx = voices.indexOf(this.voice);
-    select.value = idx >= 0 ? String(idx) : prev;
+
+    // Voices grouped by language in <optgroup>s, in alphabetical order.
+    this.voiceOptions = [];
+    for (const { lang, voices: groupVoices } of groupVoicesByLang(voices)) {
+      const optgroup = document.createElement("optgroup");
+      optgroup.label = lang;
+      for (const voice of groupVoices) {
+        const o = document.createElement("option");
+        o.value = String(this.voiceOptions.length);
+        o.textContent = `${voice.name} (${voice.lang})`;
+        this.voiceOptions.push(voice);
+        optgroup.append(o);
+      }
+      select.append(optgroup);
+    }
+
+    // Show the override voice when one is active, otherwise the "Default
+    // (admin)" entry. The override identity may outlive the exact voice it
+    // named; when that voice is gone the ladder resolves to another, and the
+    // drop-down falls back to the Default entry rather than misleadingly
+    // highlighting a different voice.
+    const hasOverride = this.voiceChosen || this.userVoice != null;
+    if (hasOverride && this.voice) {
+      const idx = this.voiceOptions.indexOf(this.voice);
+      select.value = idx >= 0 ? String(idx) : "";
+    } else {
+      select.value = "";
+    }
+
+    // A newly-arrived voice list can resolve a previously-unmatched ladder
+    // (or break one that used to match), so the notice and the play button
+    // are refreshed whenever the device reports voices.
+    this.updateUI();
   }
 
-  // Pick the starting voice from the theme settings: an explicit default
-  // language, a fallback language, then the platform's default language,
-  // then the first voice available on the device. A user's own choice wins
-  // over all. The settings are enums of language codes; "auto" is treated
-  // as no preference by the matcher.
+  // Per-browser playback-speed override, persisted in localStorage. Absent
+  // means "use the admin's default_rate"; selecting "Default" in the drop-down
+  // clears it and falls back to default_rate. A concrete choice is stored as
+  // a plain number string so it round-trips through parseFloat unchanged.
+  loadPersistedRate() {
+    try {
+      const stored = window.localStorage?.getItem(RATE_STORAGE_KEY);
+      if (stored != null && stored !== "") {
+        const rate = parseFloat(stored);
+        if (Number.isFinite(rate)) {
+          return rate;
+        }
+      }
+    } catch {
+      // localStorage may be unavailable (private mode, sandboxed iframe);
+      // fall back to the setting silently.
+    }
+    return Number(settings.default_rate) || 1;
+  }
+
+  writePersistedRate(rate) {
+    try {
+      window.localStorage?.setItem(RATE_STORAGE_KEY, String(rate));
+    } catch {
+      /* storage unavailable; the in-memory rate still applies this session */
+    }
+  }
+
+  clearPersistedRate() {
+    try {
+      window.localStorage?.removeItem(RATE_STORAGE_KEY);
+    } catch {
+      /* storage unavailable; nothing to clear */
+    }
+  }
+
+  // Whether a per-browser rate override is persisted. buildUI uses this to
+  // decide whether to pre-select a grid value or the leading "Default"
+  // entry, since loadPersistedRate() always resolves to a concrete number.
+  hasPersistedRate() {
+    try {
+      const stored = window.localStorage?.getItem(RATE_STORAGE_KEY);
+      return (
+        stored != null && stored !== "" && Number.isFinite(parseFloat(stored))
+      );
+    } catch {
+      /* localStorage unavailable; treat as no override */
+      return false;
+    }
+  }
+
+  // Per-browser voice override, persisted as a {lang, name} identity in
+  // localStorage. Absent means "use the automatic ladder"; selecting
+  // "Default (admin)" clears it and falls back to the ladder. The identity
+  // is stored as JSON so both fields round-trip unchanged.
+  loadPersistedVoice() {
+    try {
+      const stored = window.localStorage?.getItem(VOICE_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (
+          parsed &&
+          typeof parsed.lang === "string" &&
+          typeof parsed.name === "string"
+        ) {
+          return { lang: parsed.lang, name: parsed.name };
+        }
+      }
+    } catch {
+      // localStorage may be unavailable (private mode, sandboxed iframe) or
+      // the stored value may be corrupt; fall back to no override silently.
+    }
+    return null;
+  }
+
+  writePersistedVoice(identity) {
+    try {
+      window.localStorage?.setItem(VOICE_STORAGE_KEY, JSON.stringify(identity));
+    } catch {
+      /* storage unavailable; the in-memory voice still applies this session */
+    }
+  }
+
+  clearPersistedVoice() {
+    try {
+      window.localStorage?.removeItem(VOICE_STORAGE_KEY);
+    } catch {
+      /* storage unavailable; nothing to clear */
+    }
+  }
+
+  // Pick the starting voice from the selection ladder (ADR 0006): a
+  // persisted user override, then the admin's default language, then the
+  // platform language (only when the default is "auto"), then the browser
+  // languages. The user override is the visitor's persisted {lang, name}
+  // identity and always wins (the ladder stops re-applying once one is made);
+  // it is re-read on construct and on every voiceschanged so a choice made
+  // in another tab, or cleared by picking "Default", takes effect here. A
+  // user's own dropdown choice always wins over all. When nothing matches
+  // the ladder returns {voice: null, matched: false} with the configured
+  // language it was trying to satisfy, and the player shows the no-voice
+  // notice (issue #18) instead of silently speaking list[0].
   applyDefaultSelection() {
     if (this.voiceChosen) {
       return;
     }
     const selection = selectVoice(this.synth.getVoices(), {
+      userVoice: this.userVoice,
       defaultVoice: settings.default_voice,
-      fallbackVoice: settings.fallback_voice,
       platformLang: document.documentElement.lang,
+      browserLangs: navigator.languages,
     });
     this.voice = selection.voice;
     this.voiceLang = selection.lang;
+    this.matched = selection.matched;
   }
 
   collectBlocks() {
@@ -331,13 +520,22 @@ class TTSPlayer {
   }
 
   start() {
+    // iOS may only populate voices after the first user gesture, so give
+    // the device a chance to report them before deciding a voice is missing.
+    this.loadVoices();
+    // No matching voice: the no-voice notice is shown and the play button
+    // is disabled, but the visitor may still trigger start through a
+    // keyboard/AT that bypasses the disabled state — bail here rather than
+    // queue an utterance with no voice (issue #18).
+    if (!this.matched) {
+      this.announce("");
+      return;
+    }
     this.blocks = this.collectBlocks().flatMap((el) => this.chunkBlock(el));
     if (!this.blocks.length) {
       this.announce(T("empty"));
       return;
     }
-    // iOS may only populate voices after the first user gesture.
-    this.loadVoices();
     if (activePlayer && activePlayer !== this) {
       activePlayer.stop();
     }
@@ -502,6 +700,16 @@ class TTSPlayer {
       this.state === "playing" ? "true" : "false"
     );
     this.stopBtn.disabled = this.state === "idle" || this.state === "done";
+
+    // No matching voice: keep the drop-down usable but disable starting
+    // playback (issue #18). A play/pause/stop in flight is left alone so a
+    // transition that arrives mid-playback does not strand the visitor.
+    const canPlay = this.matched;
+    const inFlight = this.state === "playing" || this.state === "paused";
+    this.playBtn.disabled = !canPlay && !inFlight;
+
+    this.updateNoVoiceNotice();
+
     this.announce(
       {
         idle: "",
@@ -510,5 +718,30 @@ class TTSPlayer {
         done: T("finished"),
       }[this.state]
     );
+  }
+
+  // Render or hide the non-dismissible no-voice notice (issue #18). Shown
+  // only when no configured voice matched AND the admin enabled it; the
+  // configured language the device could not satisfy is interpolated in so
+  // the visitor knows exactly what is missing. The drop-down stays usable,
+  // so picking a voice hides the notice and re-enables playback.
+  updateNoVoiceNotice() {
+    if (!this.noVoiceNotice) {
+      return;
+    }
+    // Only show once the device has actually reported voices: getVoices()
+    // returns [] on the first call in Chrome/Edge/Firefox and only populates
+    // asynchronously via voiceschanged, so a bare !matched check would flash
+    // the notice on every first page load even when a matching voice exists.
+    const show =
+      this.voicesLoaded &&
+      !this.matched &&
+      Boolean(settings.show_no_voice_notice);
+    if (show) {
+      this.noVoiceNotice.textContent = T("no_voice", {
+        language: this.voiceLang || "",
+      });
+    }
+    this.noVoiceNotice.hidden = !show;
   }
 }

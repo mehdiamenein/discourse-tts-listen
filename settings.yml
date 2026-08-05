@@ -1,78 +1,10 @@
 default_rate:
   type: float
   default: 1
-  min: 0.5
-  max: 3
+  min: 0.1
+  max: 2.0
 
 default_voice:
-  type: enum
-  default: auto
-  choices:
-    - auto
-    - de
-    - de-AT
-    - de-CH
-    - de-DE
-    - en
-    - en-AU
-    - en-CA
-    - en-GB
-    - en-IN
-    - en-US
-    - fr
-    - fr-CA
-    - fr-FR
-    - es
-    - es-419
-    - es-ES
-    - es-MX
-    - it
-    - it-IT
-    - pt
-    - pt-BR
-    - pt-PT
-    - nl
-    - nl-NL
-    - ru
-    - pl
-    - tr
-    - sv
-    - da
-    - nb
-    - fi
-    - el
-    - cs
-    - hu
-    - ro
-    - uk
-    - bg
-    - hr
-    - sk
-    - sl
-    - sr
-    - he
-    - ar
-    - hi
-    - ur
-    - fa
-    - th
-    - vi
-    - id
-    - ms
-    - ja
-    - ko
-    - zh-CN
-    - zh-TW
-    - ca
-    - et
-    - lt
-    - lv
-    - sq
-    - sw
-    - gl
-    - eu
-
-fallback_voice:
   type: enum
   default: auto
   choices:
@@ -155,3 +87,7 @@ skip_quotes:
 show_unsupported_notice:
   type: bool
   default: false
+
+show_no_voice_notice:
+  type: bool
+  default: true

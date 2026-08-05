@@ -41,6 +41,16 @@
   color: var(--primary-medium);
 }
 
+.tts-no-voice {
+  // Small, non-dismissible inline warning (issue #18): shown only when no
+  // installed voice speaks the configured language. Red so it reads as a
+  // notice, not a label; full-width so it wraps cleanly above the controls.
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--font-down-1);
+  color: var(--danger);
+}
+
 .tts-sr-only {
   position: absolute;
   width: 1px;

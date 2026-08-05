@@ -24,18 +24,62 @@ is ours)
 
 **Platform language**:
 The Discourse site's default language — the language the forum is configured
-in. Voice selection targets this language, not the visitor's browser locale.
+in. Voice selection targets this language as its primary signal; the
+visitor's browser language is consulted only as a final resort.
 _Avoid_: browser language, site language, locale
 
-**Default voice / Fallback voice**:
-The two theme settings that pin a preferred voice language, chosen from a
+**Browser language**:
+The visitor's preferred languages as reported by the browser
+(`navigator.languages`), consulted only as the last resort of voice
+selection, and only matched against voices that actually exist on the device.
+_Avoid_: device language, system language, locale
+
+**Default voice**:
+The single theme setting that pins a preferred voice language, chosen from a
 drop-down of language codes (e.g. `de` or `de-DE`). `auto` means no
-preference: follow the platform language.
+preference: follow the platform language. There is deliberately no second
+"fallback" language setting — see ADR 0006.
+_Avoid_: primary voice, preferred voice
+
+**Voice identity**:
+The pair `{lang, name}` that identifies a device voice across sessions. The
+user override stores a voice identity, never a list index, because the order
+of `speechSynthesis.getVoices()` is unstable and device-dependent.
+_Avoid_: voice index, voice reference
+
+**User override**:
+A voice a visitor deliberately chose in the player's drop-down, stored
+per-browser as a voice identity. It wins over every automatic step of voice
+selection. Selecting "Default" in the drop-down clears it (see Revert).
+_Avoid_: saved voice, voice preference
+
+**Revert**:
+Clearing the user override so voice selection runs the full ladder again from
+the admin's default. It does not snapshot the admin's current choice.
+_Avoid_: reset, restore
+
+**No-voice notice**:
+A small, non-dismissible inline warning shown in the player when no voice
+speaks the configured language on the visitor's device. It replaces any silent
+fallback to another language: the visitor is told what is missing and can pick
+another voice themselves.
+_Avoid_: error, alert, fallback message
+
+**Normalized language code**:
+A voice's `lang` value rewritten to a single canonical form before matching:
+underscores become hyphens (`de_DE` → `de-DE`) and Firefox three-letter
+prefixes are stripped (`deu-DEU-f00` → `de-DE`). A single comparison then works
+across browsers and devices, which is what makes the configured language
+actually resolve on Android and Firefox.
+_Avoid_: canonical lang, lang normalization
 
 **Voice selection priority**:
-The order in which the player picks its starting voice: default voice setting →
-fallback voice setting → first voice speaking the platform language → first
-available device voice.
+The order in which the player picks its starting voice:
+user override → default voice setting → platform language (only when the
+default is `auto`) → browser language, matched against real device voices →
+no-voice notice (no further automatic fallback). The player never picks the
+first entry of the device voice list, because that order is unspecified and on
+Chrome Android frequently an Indian-English or Hindi voice.
 _Avoid_: voice fallback, voice preference
 
 **Active player**:
@@ -51,6 +95,7 @@ fresh element — the voice never breaks stride.
 _Avoid_: refresh, rerender of the browser
 
 **Theme translations**:
-The `locales/*.yml` files that localize the player's controls to the
-platform's language, looked up via `themePrefix` + `i18n()`.
+The `locales/*.yml` files that localize the player's controls and the
+no-voice notice to the platform's language, looked up via `themePrefix` +
+`i18n()`.
 _Avoid_: i18n keys, strings file
