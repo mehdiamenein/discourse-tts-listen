@@ -1,5 +1,6 @@
 import { module, test } from "qunit";
 import {
+  groupVoicesByLang,
   normalizeLang,
   selectVoice,
 } from "../../../discourse/lib/tts-selection";
@@ -408,5 +409,81 @@ module("TTS Listen | Unit | selectVoice | lang normalization", function () {
 
     assert.strictEqual(result.voice, voices[0]);
     assert.true(result.matched);
+  });
+});
+
+module("TTS Listen | Unit | groupVoicesByLang", function () {
+  test("groups voices by their normalized language", function (assert) {
+    const voices = [
+      { name: "Google US English", lang: "en-US" },
+      { name: "Google Deutsch", lang: "de-DE" },
+      { name: "Microsoft Katja", lang: "de-DE" },
+    ];
+    const groups = groupVoicesByLang(voices);
+
+    assert.deepEqual(
+      groups.map((g) => g.lang),
+      ["de-de", "en-us"]
+    );
+    assert.strictEqual(groups[0].voices.length, 2);
+    assert.strictEqual(groups[1].voices.length, 1);
+  });
+
+  test("returns groups in alphabetical order by language code", function (assert) {
+    const voices = [
+      { name: "Z", lang: "fr-FR" },
+      { name: "A", lang: "en-US" },
+      { name: "M", lang: "de-DE" },
+    ];
+    const groups = groupVoicesByLang(voices);
+
+    assert.deepEqual(
+      groups.map((g) => g.lang),
+      ["de-de", "en-us", "fr-fr"]
+    );
+  });
+
+  // Android reports underscore locales (de_DE) and Firefox three-letter
+  // primaries (deu-DEU-f00); both normalize to the same key as the hyphenated
+  // two-letter code and so land in the same <optgroup>.
+  test("groups voices whose lang codes normalize to the same key", function (assert) {
+    const voices = [
+      { name: "Chrome German", lang: "de-DE" },
+      { name: "Android German", lang: "de_DE" },
+      { name: "Firefox German", lang: "deu-DEU-f00" },
+    ];
+    const groups = groupVoicesByLang(voices);
+
+    assert.strictEqual(groups.length, 1);
+    assert.strictEqual(groups[0].lang, "de-de");
+    assert.strictEqual(groups[0].voices.length, 3);
+  });
+
+  test("drops duplicate voices that share a name within a language group", function (assert) {
+    const voices = [
+      { name: "Google Deutsch", lang: "de-DE" },
+      { name: "Google Deutsch", lang: "de-DE" },
+      { name: "Microsoft Katja", lang: "de-DE" },
+    ];
+    const groups = groupVoicesByLang(voices);
+
+    assert.strictEqual(groups.length, 1);
+    assert.strictEqual(groups[0].voices.length, 2);
+    assert.strictEqual(groups[0].voices[0].name, "Google Deutsch");
+    assert.strictEqual(groups[0].voices[1].name, "Microsoft Katja");
+  });
+
+  test("keeps each voice's original lang code intact in the group", function (assert) {
+    const voices = [{ name: "Android German", lang: "de_DE" }];
+    const groups = groupVoicesByLang(voices);
+
+    assert.strictEqual(groups[0].lang, "de-de");
+    assert.strictEqual(groups[0].voices[0].lang, "de_DE");
+  });
+
+  test("returns an empty array for empty or missing input", function (assert) {
+    assert.deepEqual(groupVoicesByLang([]), []);
+    assert.deepEqual(groupVoicesByLang(undefined), []);
+    assert.deepEqual(groupVoicesByLang(null), []);
   });
 });
