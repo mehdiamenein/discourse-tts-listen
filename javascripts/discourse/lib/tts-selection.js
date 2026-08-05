@@ -54,21 +54,115 @@ export function selectVoice(
   return { voice: null, lang: platformLang || "en-US" };
 }
 
+// Map Firefox's ISO 639-2 three-letter primary subtags to the two-letter
+// codes used in the settings drop-down, so a voice reported as
+// "deu-DEU-f00" is matched against a configured "de-DE". Both the
+// terminologic (T) and bibliographic (B) variants are listed where they
+// differ, since Firefox is not consistent. Only the *primary* subtag is
+// mapped; the region and any variant are left intact — matching is the job
+// of findForLang, and a normalized code never carries less information than
+// the original.
+const PRIMARY_TO_TWO_LETTER = {
+  // Germanic
+  deu: "de",
+  eng: "en",
+  nld: "nl",
+  dut: "nl",
+  swe: "sv",
+  dan: "da",
+  nob: "nb",
+  fin: "fi",
+  // Romance
+  fra: "fr",
+  fre: "fr",
+  spa: "es",
+  ita: "it",
+  por: "pt",
+  cat: "ca",
+  glg: "gl",
+  eus: "eu",
+  baq: "eu",
+  // Slavic
+  rus: "ru",
+  pol: "pl",
+  bul: "bg",
+  hrv: "hr",
+  slk: "sk",
+  slo: "sk",
+  slv: "sl",
+  srp: "sr",
+  ces: "cs",
+  cze: "cs",
+  ukr: "uk",
+  // Other European
+  hun: "hu",
+  ron: "ro",
+  rum: "ro",
+  ell: "el",
+  gre: "el",
+  tur: "tr",
+  est: "et",
+  lit: "lt",
+  lav: "lv",
+  sqi: "sq",
+  alb: "sq",
+  // Non-Latin scripts
+  heb: "he",
+  ara: "ar",
+  hin: "hi",
+  urd: "ur",
+  fas: "fa",
+  per: "fa",
+  tha: "th",
+  // Asian & others
+  vie: "vi",
+  ind: "id",
+  msa: "ms",
+  may: "ms",
+  jpn: "ja",
+  kor: "ko",
+  zho: "zh",
+  chi: "zh",
+  swa: "sw",
+};
+
+// Normalize a voice or setting language code for matching: lower-case it,
+// turn Android's underscores into hyphens, and map Firefox's three-letter
+// primary to the two-letter drop-down code. Empty/missing input normalizes
+// to an empty string so findForLang can short-circuit on it.
+export function normalizeLang(code) {
+  const normalized = String(code || "")
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, "-");
+  if (!normalized) {
+    return "";
+  }
+  const parts = normalized.split("-");
+  const mappedPrimary = PRIMARY_TO_TWO_LETTER[parts[0]];
+  if (mappedPrimary) {
+    parts[0] = mappedPrimary;
+  }
+  return parts.join("-");
+}
+
 // Language-code match: exact language first (e.g. "de-DE"), then
 // language-family match (e.g. "de" matching "de-AT", "de-DE", …). Used for
 // both the settings drop-down values and the platform language — codes are
-// the only voice attribute that is stable across browsers and devices.
+// the only voice attribute that is stable across browsers and devices. Both
+// the needle and each voice lang are normalized first, so Android underscore
+// locales and Firefox three-letter primaries resolve to the same codes.
 function findForLang(voices, lang) {
-  const needle = String(lang || "")
-    .trim()
-    .toLowerCase();
+  const needle = normalizeLang(lang);
   if (!needle) {
     return null;
   }
   const family = needle.split("-")[0];
   return (
-    voices.find((voice) => voice.lang.toLowerCase() === needle) ||
-    voices.find((voice) => voice.lang.toLowerCase().startsWith(family + "-")) ||
+    voices.find((voice) => normalizeLang(voice.lang) === needle) ||
+    voices.find((voice) =>
+      normalizeLang(voice.lang).startsWith(family + "-")
+    ) ||
     null
   );
 }
