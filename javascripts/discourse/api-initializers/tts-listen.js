@@ -7,8 +7,10 @@ import { buildSpeedOptions, DEFAULT_VALUE } from "../lib/tts-speed";
 // UI strings come from the theme translations (locales/*.yml), so the player
 // speaks the platform's language: German forums get German controls, English
 // forums English ones. `themePrefix` is injected into theme modules by
-// Discourse (same as `settings`), so no import is needed.
-const T = (key) => i18n(themePrefix(`tts_listen.${key}`));
+// Discourse (same as `settings`), so no import is needed. The optional
+// `options` object is forwarded to `i18n` for `%{name}` interpolation (used by
+// the no-voice notice, which names the configured language).
+const T = (key, options) => i18n(themePrefix(`tts_listen.${key}`), options);
 
 const BLOCK_SELECTOR =
   "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th, figcaption";
@@ -130,6 +132,7 @@ class TTSPlayer {
     this.voiceOptions = []; // flat voice list backing the grouped drop-down
     this.voice = null;
     this.voiceLang = "";
+    this.matched = false; // a configured preference actually resolved a voice
     this.voiceChosen = false; // the user picked their own voice in the dropdown
     this.currentBlock = null;
 
@@ -200,6 +203,7 @@ class TTSPlayer {
             this.voice = voice;
             this.voiceLang = voice.lang;
             this.voiceChosen = true;
+            this.matched = true; // the visitor picked a usable voice
             // Persist a {lang, name} identity, never an index: it survives a
             // reordered or differently-populated voice list.
             this.userVoice = { lang: voice.lang, name: voice.name };
@@ -210,6 +214,7 @@ class TTSPlayer {
           this.state = "playing";
           this.speakCurrent(); // restart current block in the new voice
         }
+        this.updateUI();
       });
       root.append(this.voiceField.wrapper);
     }
@@ -219,6 +224,16 @@ class TTSPlayer {
     this.status.className = "tts-sr-only";
     this.status.setAttribute("aria-live", "polite");
     root.append(this.status);
+
+    // Non-dismissible inline notice shown when no installed voice speaks the
+    // configured language (issue #18). It stays until the visitor picks a
+    // voice from the drop-down or a matching voice appears; it carries the
+    // configured language so the visitor knows exactly what is missing.
+    this.noVoiceNotice = document.createElement("p");
+    this.noVoiceNotice.className = "tts-no-voice";
+    this.noVoiceNotice.setAttribute("role", "status");
+    this.noVoiceNotice.hidden = true;
+    root.append(this.noVoiceNotice);
 
     this.cooked.prepend(root);
     this.updateUI();
@@ -314,6 +329,11 @@ class TTSPlayer {
     } else {
       select.value = "";
     }
+
+    // A newly-arrived voice list can resolve a previously-unmatched ladder
+    // (or break one that used to match), so the notice and the play button
+    // are refreshed whenever the device reports voices.
+    this.updateUI();
   }
 
   // Per-browser playback-speed override, persisted in localStorage. Absent
@@ -398,9 +418,11 @@ class TTSPlayer {
   // languages. The user override is the visitor's persisted {lang, name}
   // identity and always wins (the ladder stops re-applying once one is made);
   // it is re-read on construct and on every voiceschanged so a choice made
-  // in another tab, or cleared by picking "Default", takes effect here. The
-  // unmatched `matched` flag is ignored until the no-voice notice lands
-  // (issue #18). A user's own dropdown choice always wins over all.
+  // in another tab, or cleared by picking "Default", takes effect here. A
+  // user's own dropdown choice always wins over all. When nothing matches
+  // the ladder returns {voice: null, matched: false} with the configured
+  // language it was trying to satisfy, and the player shows the no-voice
+  // notice (issue #18) instead of silently speaking list[0].
   applyDefaultSelection() {
     if (this.voiceChosen) {
       return;
@@ -413,6 +435,7 @@ class TTSPlayer {
     });
     this.voice = selection.voice;
     this.voiceLang = selection.lang;
+    this.matched = selection.matched;
   }
 
   collectBlocks() {
@@ -477,13 +500,22 @@ class TTSPlayer {
   }
 
   start() {
+    // iOS may only populate voices after the first user gesture, so give
+    // the device a chance to report them before deciding a voice is missing.
+    this.loadVoices();
+    // No matching voice: the no-voice notice is shown and the play button
+    // is disabled, but the visitor may still trigger start through a
+    // keyboard/AT that bypasses the disabled state — bail here rather than
+    // queue an utterance with no voice (issue #18).
+    if (!this.matched) {
+      this.announce("");
+      return;
+    }
     this.blocks = this.collectBlocks().flatMap((el) => this.chunkBlock(el));
     if (!this.blocks.length) {
       this.announce(T("empty"));
       return;
     }
-    // iOS may only populate voices after the first user gesture.
-    this.loadVoices();
     if (activePlayer && activePlayer !== this) {
       activePlayer.stop();
     }
@@ -648,6 +680,16 @@ class TTSPlayer {
       this.state === "playing" ? "true" : "false"
     );
     this.stopBtn.disabled = this.state === "idle" || this.state === "done";
+
+    // No matching voice: keep the drop-down usable but disable starting
+    // playback (issue #18). A play/pause/stop in flight is left alone so a
+    // transition that arrives mid-playback does not strand the visitor.
+    const canPlay = this.matched;
+    const inFlight = this.state === "playing" || this.state === "paused";
+    this.playBtn.disabled = !canPlay && !inFlight;
+
+    this.updateNoVoiceNotice();
+
     this.announce(
       {
         idle: "",
@@ -656,5 +698,23 @@ class TTSPlayer {
         done: T("finished"),
       }[this.state]
     );
+  }
+
+  // Render or hide the non-dismissible no-voice notice (issue #18). Shown
+  // only when no configured voice matched AND the admin enabled it; the
+  // configured language the device could not satisfy is interpolated in so
+  // the visitor knows exactly what is missing. The drop-down stays usable,
+  // so picking a voice hides the notice and re-enables playback.
+  updateNoVoiceNotice() {
+    if (!this.noVoiceNotice) {
+      return;
+    }
+    const show = !this.matched && Boolean(settings.show_no_voice_notice);
+    if (show) {
+      this.noVoiceNotice.textContent = T("no_voice", {
+        language: this.voiceLang || "",
+      });
+    }
+    this.noVoiceNotice.hidden = !show;
   }
 }

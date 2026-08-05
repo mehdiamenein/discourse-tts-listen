@@ -222,32 +222,51 @@ module("TTS Listen | Unit | selectVoice | browser languages", function () {
 });
 
 module(
-  "TTS Listen | Unit | selectVoice | terminal fallback (temporary)",
+  "TTS Listen | Unit | selectVoice | no-voice (matched false)",
   function () {
-    // list[0] is kept TEMPORARILY so the player still speaks when nothing
-    // configured matches; it is removed in issue #18 in favour of the no-voice
-    // notice. Until then `matched: false` marks the pick as an unmatched
-    // fallback, not a configured preference.
-    test("falls back to the first device voice when nothing matches, with matched false", function (assert) {
+    // list[0] is deliberately not used as a terminal fallback (ADR 0006):
+    // its order and value are unspecified across implementations. When
+    // nothing configured matches, the ladder returns {voice: null,
+    // matched: false} with the configured language it was trying to satisfy,
+    // and the player shows the no-voice notice instead of silently speaking
+    // the wrong language.
+    test("returns no voice with matched false when nothing matches", function (assert) {
       const result = selectVoice(VOICES, {
         defaultVoice: "auto",
         platformLang: "nl",
         browserLangs: ["ja"],
       });
 
-      assert.strictEqual(result.voice, VOICES[0]);
-      assert.strictEqual(result.lang, "en-US");
+      assert.strictEqual(result.voice, null);
+      assert.strictEqual(result.lang, "nl");
       assert.false(result.matched);
     });
 
-    test("falls back to list[0] when a non-auto default and the browser languages all miss", function (assert) {
+    test("never falls back to list[0], even when a non-auto default and browser languages all miss", function (assert) {
       const result = selectVoice(VOICES, {
         defaultVoice: "pt",
         platformLang: "de",
         browserLangs: ["ja", "ko"],
       });
 
-      assert.strictEqual(result.voice, VOICES[0]);
+      assert.strictEqual(result.voice, null);
+      assert.notStrictEqual(result.voice, VOICES[0]);
+      // The configured preference the device could not satisfy is the
+      // admin's default, so the notice can name it.
+      assert.strictEqual(result.lang, "pt");
+      assert.false(result.matched);
+    });
+
+    test("the unmatched lang is the user's override language when one is set and falls through", function (assert) {
+      const result = selectVoice(VOICES, {
+        userVoice: { lang: "ja-JP", name: "Google Japanese (removed)" },
+        defaultVoice: "pt",
+        platformLang: "de",
+        browserLangs: ["ko"],
+      });
+
+      assert.strictEqual(result.voice, null);
+      assert.strictEqual(result.lang, "ja-JP");
       assert.false(result.matched);
     });
 
@@ -272,7 +291,9 @@ module(
 module("TTS Listen | Unit | selectVoice | full ladder order", function () {
   // One voice per ladder step: a user override for Spanish, a default of
   // Italian, a platform of Portuguese, a browser list of German, and a
-  // stray English voice that would only win as the list[0] terminal.
+  // stray English voice that used to win as the list[0] terminal fallback
+  // but now means the ladder falls through to the no-voice result when no
+  // configured step matches it.
   const LADDER = [
     { name: "Español", lang: "es-ES" },
     { name: "Italiano", lang: "it-IT" },
@@ -315,7 +336,7 @@ module("TTS Listen | Unit | selectVoice | full ladder order", function () {
     assert.true(result.matched);
   });
 
-  test("browser language is the terminal matching step before list[0]", function (assert) {
+  test("browser language is the terminal matching step before the no-voice result", function (assert) {
     const result = selectVoice(LADDER, {
       defaultVoice: "auto",
       platformLang: "zh",
@@ -324,6 +345,18 @@ module("TTS Listen | Unit | selectVoice | full ladder order", function () {
 
     assert.strictEqual(result.voice, LADDER[3]);
     assert.true(result.matched);
+  });
+
+  test("returns no voice when every step misses", function (assert) {
+    const result = selectVoice(LADDER, {
+      defaultVoice: "auto",
+      platformLang: "zh",
+      browserLangs: ["ja"],
+    });
+
+    assert.strictEqual(result.voice, null);
+    assert.strictEqual(result.lang, "zh");
+    assert.false(result.matched);
   });
 });
 

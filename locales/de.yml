@@ -8,7 +8,8 @@ de:
       show_voice_selector: "Besuchern erlauben, aus den auf ihrem Gerät installierten Stimmen zu wählen."
       skip_code_blocks: "Codeblöcke nicht vorlesen."
       skip_quotes: "Zitierte Inhalte nicht vorlesen."
-      show_unsupported_notice: "Einen kurzen Hinweis auf Beiträgen anzeigen, wenn der Browser des Besuchers keine Text-to-Speech-Funktion unterstützt (andernfalls wird die Schaltfläche einfach ausgeblendet)."
+      show_unsupported_notice: „Einen kurzen Hinweis auf Beiträgen anzeigen, wenn der Browser des Besuchers keine Text-to-Speech-Funktion unterstützt (andernfalls wird die Schaltfläche einfach ausgeblendet).“
+      show_no_voice_notice: „Einen kleinen roten Hinweis anzeigen, wenn keine installierte Stimme die konfigurierte Sprache spricht, und die Besucherin eine Stimme aus der Liste wählen lassen (andernfalls bleibt der Player einfach inaktiv).“
   tts_listen:
     group_label: "Diesen Beitrag anhören"
     listen: "Anhören"
@@ -23,5 +24,6 @@ de:
     playing: "Beitrag wird vorgelesen…"
     paused: "Pausiert"
     finished: "Vorlesen beendet"
-    failed: "Text-to-Speech ist fehlgeschlagen."
-    empty: "In diesem Beitrag gibt es nichts Vorzulesendes."
+    failed: „Text-to-Speech ist fehlgeschlagen.“
+    empty: „In diesem Beitrag gibt es nichts Vorzulesendes.“
+    no_voice: „Für %{language} ist keine Stimme auf diesem Gerät installiert — wähle eine aus der Liste.“
