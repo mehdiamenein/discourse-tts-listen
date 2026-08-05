@@ -1,8 +1,14 @@
-// Pure, dependency-free voice selection for the TTS player.
+// Pure voice selection for the TTS player.
 //
 // Kept separate from the UI code so it can be unit-tested in isolation.
 // It decides which device voice to speak with, following the selection
-// ladder (ADR 0006):
+// ladder (ADR 0006), with a per-platform recommended-voice preference
+// layered within the resolved language (ADR 0008). The admin still
+// configures only a language; the recommended-voice index is shipped by the
+// component and refines WHICH voice of that language is picked — it never
+// changes which language is resolved.
+//
+// The ladder is:
 //   1. userVoice — the visitor's persisted override. Match the exact
 //      {lang, name} identity, then any voice of that language, then fall
 //      through to the automatic ladder.
@@ -24,11 +30,20 @@
 // false when the ladder found no voice at all — never list[0], which is
 // an unreliable, unspecified terminal fallback (ADR 0006).
 //
+// At every language-resolved step the picker applies preferRecommendedVoice
+// (ADR 0008) before falling back to the first collected voice of the
+// language (today's behavior). The two regression invariants hold by
+// construction: I1 — with no recommendation resolving, the picker returns
+// exactly what the old findForLang returned; I2 — adding the index never
+// changes `matched`, only which voice.
+//
 // Settings are language codes, never voice names: codes like "de-DE" are
 // universal across browsers and devices, while voice names ("Google Deutsch",
 // "Microsoft Katja", …) differ per browser, OS and device and change over
 // time. A user's own choice persists as a {lang, name} identity and always
 // wins (the player stops re-applying this ladder once one is made).
+
+import { preferRecommendedVoice } from "./tts-recommended-voices";
 
 /**
  * @param {Array<{ name: string, lang: string }>} voices
@@ -43,6 +58,11 @@
  *   The platform's default language, e.g. "de" or "de-DE".
  * @param {string[]} [options.browserLangs]
  *   `navigator.languages`, in preference order.
+ * @param {object} [options.recommended]
+ *   The vendored recommended-voice index (ADR 0008). `null`/`{}` means no
+ *   recommendation: the picker falls back to any voice of the language.
+ * @param {{ os?: string[], browser?: string[] }} [options.platform]
+ *   The detected platform tags (ADR 0008), used to filter the index.
  * @returns {{ voice: ({ name: string, lang: string } | null), lang: string, matched: boolean }}
  *   The chosen voice (or null when nothing matches), the language to speak
  *   with (the configured preference the device could not satisfy when no
@@ -55,6 +75,8 @@ export function selectVoice(
     defaultVoice = "auto",
     platformLang = "",
     browserLangs = [],
+    recommended = {},
+    platform = { os: [], browser: [] },
   } = {}
 ) {
   const list = Array.isArray(voices) ? voices : [];
@@ -76,7 +98,10 @@ export function selectVoice(
     if (exact) {
       return { voice: exact, lang: exact.lang, matched: true };
     }
-    const sameLang = findForLang(list, userVoice.lang);
+    const sameLang = pickVoiceForLang(list, userVoice.lang, {
+      recommended,
+      platform,
+    });
     if (sameLang) {
       return { voice: sameLang, lang: sameLang.lang, matched: true };
     }
@@ -87,7 +112,10 @@ export function selectVoice(
   //    platform language.
   const defaultIsAuto = isAutoValue(defaultVoice);
   if (!defaultIsAuto) {
-    const byDefault = findForLang(list, defaultVoice);
+    const byDefault = pickVoiceForLang(list, defaultVoice, {
+      recommended,
+      platform,
+    });
     if (byDefault) {
       return { voice: byDefault, lang: byDefault.lang, matched: true };
     }
@@ -98,7 +126,10 @@ export function selectVoice(
   //    never silently swaps to the platform's language; it falls through to
   //    the browser languages instead.
   if (defaultIsAuto) {
-    const byPlatform = findForLang(list, platformLang);
+    const byPlatform = pickVoiceForLang(list, platformLang, {
+      recommended,
+      platform,
+    });
     if (byPlatform) {
       return { voice: byPlatform, lang: byPlatform.lang, matched: true };
     }
@@ -106,7 +137,10 @@ export function selectVoice(
 
   // 4. Browser languages, in preference order.
   for (const browserLang of browsers) {
-    const byBrowser = findForLang(list, browserLang);
+    const byBrowser = pickVoiceForLang(list, browserLang, {
+      recommended,
+      platform,
+    });
     if (byBrowser) {
       return { voice: byBrowser, lang: byBrowser.lang, matched: true };
     }
@@ -227,23 +261,57 @@ export function normalizeLang(code) {
   return parts.join("-");
 }
 
-// Language-code match: exact language first (e.g. "de-DE"), then
-// language-family match (e.g. "de" matching "de-AT", "de-DE", …). Used for
-// both the settings drop-down values and the platform language — codes are
-// the only voice attribute that is stable across browsers and devices. Both
-// the needle and each voice lang are normalized first, so Android underscore
-// locales and Firefox three-letter primaries resolve to the same codes.
-function findForLang(voices, lang) {
+// Collect every device voice for a language code: exact-normalized matches
+// first (e.g. "de-DE"), then language-family matches (e.g. "de" matching
+// "de-AT", "de-DE", …), deduped by reference so a voice that matches exactly
+// is not also listed under the family step. Pure and exported so the
+// collector and the recommended-voice picker can be unit-tested in
+// isolation. The needle and each voice lang are normalized first, so
+// Android underscore locales and Firefox three-letter primaries resolve to
+// the same codes.
+//
+// @param {Array<{ name: string, lang: string }>} voices
+// @returns {Array<{ name: string, lang: string }>}
+export function collectForLang(voices, lang) {
+  const list = Array.isArray(voices) ? voices : [];
   const needle = normalizeLang(lang);
   if (!needle) {
-    return null;
+    return [];
   }
   const family = needle.split("-")[0];
-  return (
-    voices.find((voice) => normalizeLang(voice.lang) === needle) ||
-    voices.find((voice) =>
+  const exact = list.filter((voice) => normalizeLang(voice.lang) === needle);
+  const exactSet = new Set(exact);
+  const byFamily = list.filter(
+    (voice) =>
+      !exactSet.has(voice) &&
       normalizeLang(voice.lang).startsWith(family + "-")
-    ) ||
+  );
+  return [...exact, ...byFamily];
+}
+
+// Pick the best device voice for a language code (ADR 0006 language
+// resolution, refined by the ADR 0008 recommended-voice preference). First
+// prefer a recommended voice for the visitor's platform within the resolved
+// language; when none is installed, fall back to the first collected voice —
+// exactly what the old findForLang returned (invariant I1). Returns null when
+// no voice of the language exists at all.
+//
+// @param {Array<{ name: string, lang: string }>} voices
+// @param {string} lang
+// @param {{ recommended?: object, platform?: { os?: string[], browser?: string[] } }} [ctx]
+// @returns {{ name: string, lang: string } | null}
+export function pickVoiceForLang(
+  voices,
+  lang,
+  { recommended = {}, platform = { os: [], browser: [] } } = {}
+) {
+  const collected = collectForLang(voices, lang);
+  if (collected.length === 0) {
+    return null;
+  }
+  return (
+    preferRecommendedVoice(collected, lang, { recommended, platform }) ||
+    collected[0] ||
     null
   );
 }
