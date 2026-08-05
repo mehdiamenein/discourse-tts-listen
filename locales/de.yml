@@ -18,7 +18,7 @@ de:
     speed: "Geschwindigkeit"
     default_speed: "Standard"
     voice: "Stimme"
-    default_voice: "Browser-Standard"
+    default_voice_option: "Standard (Admin)"
     unsupported: "Text-to-Speech wird von diesem Browser nicht unterstützt."
     playing: "Beitrag wird vorgelesen…"
     paused: "Pausiert"

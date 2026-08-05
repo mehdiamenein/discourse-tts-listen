@@ -241,3 +241,36 @@ function findForLang(voices, lang) {
     null
   );
 }
+
+// Group device voices by their normalized language, returning one entry
+// per distinct language in alphabetical order. The group's `lang` is the
+// normalized key every voice in it shares; each voice keeps its original
+// `lang` (so de-DE and de_DE that normalize together still show their
+// reported code in the drop-down). Duplicate voices — same name within a
+// language group — are dropped so the drop-down never lists a voice twice.
+//
+// Pure and dependency-free so the grouping, ordering and de-dup can be
+// unit-tested without a DOM; the player turns the result into <optgroup>s.
+//
+// @param {Array<{ name: string, lang: string }>} voices
+// @returns {Array<{ lang: string, voices: Array<{ name: string, lang: string }> }>}
+export function groupVoicesByLang(voices) {
+  const list = Array.isArray(voices) ? voices : [];
+  const groups = new Map();
+  for (const voice of list) {
+    const lang = normalizeLang(voice.lang);
+    let groupVoices = groups.get(lang);
+    if (!groupVoices) {
+      groupVoices = [];
+      groups.set(lang, groupVoices);
+    }
+    // Within a language group, a duplicate is a voice of the same name.
+    const isDuplicate = groupVoices.some((v) => v.name === voice.name);
+    if (!isDuplicate) {
+      groupVoices.push(voice);
+    }
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([lang, groupVoices]) => ({ lang, voices: groupVoices }));
+}

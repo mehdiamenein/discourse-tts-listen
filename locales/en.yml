@@ -18,7 +18,7 @@ en:
     speed: "Speed"
     default_speed: "Default"
     voice: "Voice"
-    default_voice: "Browser default"
+    default_voice_option: "Default (admin)"
     unsupported: "Text-to-speech isn't supported by this browser."
     playing: "Reading post aloud…"
     paused: "Paused"
