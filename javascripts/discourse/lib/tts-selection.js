@@ -283,8 +283,7 @@ export function collectForLang(voices, lang) {
   const exactSet = new Set(exact);
   const byFamily = list.filter(
     (voice) =>
-      !exactSet.has(voice) &&
-      normalizeLang(voice.lang).startsWith(family + "-")
+      !exactSet.has(voice) && normalizeLang(voice.lang).startsWith(family + "-")
   );
   return [...exact, ...byFamily];
 }

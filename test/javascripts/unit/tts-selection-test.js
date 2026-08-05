@@ -555,7 +555,10 @@ module("TTS Listen | Unit | collectForLang", function () {
 
   test("dedupes a voice that matches both exactly and by family", function (assert) {
     const dups = [{ name: "Only", lang: "de-DE" }];
-    assert.deepEqual(collectForLang(dups, "de-DE").map((v) => v.name), ["Only"]);
+    assert.deepEqual(
+      collectForLang(dups, "de-DE").map((v) => v.name),
+      ["Only"]
+    );
     assert.strictEqual(collectForLang(dups, "de-DE").length, 1);
   });
 

@@ -21,7 +21,12 @@ module("TTS Listen | Unit | preferRecommendedVoice | ranking", function () {
   test("preloaded beats higher quality (priority: preloaded > quality)", function (assert) {
     const recommended = index([
       { name: "HighNotPreloaded", language: "de-DE", quality: ["veryHigh"] },
-      { name: "NormalPreloaded", language: "de-DE", quality: ["normal"], preloaded: true },
+      {
+        name: "NormalPreloaded",
+        language: "de-DE",
+        quality: ["normal"],
+        preloaded: true,
+      },
     ]);
     const voices = [
       { name: "HighNotPreloaded", lang: "de-DE" },
@@ -36,8 +41,18 @@ module("TTS Listen | Unit | preferRecommendedVoice | ranking", function () {
 
   test("quality breaks a tie between equally-preloaded voices", function (assert) {
     const recommended = index([
-      { name: "Normal", language: "de-DE", quality: ["normal"], preloaded: true },
-      { name: "VeryHigh", language: "de-DE", quality: ["veryHigh"], preloaded: true },
+      {
+        name: "Normal",
+        language: "de-DE",
+        quality: ["normal"],
+        preloaded: true,
+      },
+      {
+        name: "VeryHigh",
+        language: "de-DE",
+        quality: ["veryHigh"],
+        preloaded: true,
+      },
     ]);
     const voices = [
       { name: "Normal", lang: "de-DE" },
@@ -54,7 +69,12 @@ module("TTS Listen | Unit | preferRecommendedVoice | ranking", function () {
     // Bare family code "de" → region de-DE. The de-DE entry is not preloaded
     // but matches the region; the de-AT entry is preloaded but off-region.
     const recommended = index([
-      { name: "AustrianPreloaded", language: "de-AT", quality: ["normal"], preloaded: true },
+      {
+        name: "AustrianPreloaded",
+        language: "de-AT",
+        quality: ["normal"],
+        preloaded: true,
+      },
       { name: "GermanNotPreloaded", language: "de-DE", quality: ["normal"] },
     ]);
     const voices = [
@@ -93,7 +113,9 @@ module(
       const recommended = index([
         {
           name: "Google Deutsch 2 (Natural)",
-          altNames: ["Android Speech Recognition and Synthesis from Google de-de-x-dea-network"],
+          altNames: [
+            "Android Speech Recognition and Synthesis from Google de-de-x-dea-network",
+          ],
           language: "de-DE",
           quality: ["high"],
           preloaded: true,
@@ -108,7 +130,10 @@ module(
       ];
 
       assert.strictEqual(
-        preferRecommendedVoice(voices, "de-DE", { recommended, platform: { os: ["Android"], browser: [] } }),
+        preferRecommendedVoice(voices, "de-DE", {
+          recommended,
+          platform: { os: ["Android"], browser: [] },
+        }),
         voices[0]
       );
     });
@@ -134,7 +159,13 @@ module(
 
     test("an os-tagged entry is excluded on a non-matching platform", function (assert) {
       const recommended = index([
-        { name: "WinOnly", language: "de-DE", quality: ["normal"], preloaded: true, os: ["Windows"] },
+        {
+          name: "WinOnly",
+          language: "de-DE",
+          quality: ["normal"],
+          preloaded: true,
+          os: ["Windows"],
+        },
         { name: "Any", language: "de-DE", quality: ["low"], preloaded: true },
       ]);
       const voices = [
@@ -156,7 +187,13 @@ module(
 
     test("a browser-tagged entry is excluded on a non-matching browser", function (assert) {
       const recommended = index([
-        { name: "EdgeOnly", language: "de-DE", quality: ["veryHigh"], preloaded: true, browser: ["Edge"] },
+        {
+          name: "EdgeOnly",
+          language: "de-DE",
+          quality: ["veryHigh"],
+          preloaded: true,
+          browser: ["Edge"],
+        },
         { name: "Any", language: "de-DE", quality: ["low"], preloaded: true },
       ]);
       const voices = [
@@ -166,12 +203,18 @@ module(
 
       // On Safari (no browser tag), "EdgeOnly" is filtered out.
       assert.strictEqual(
-        preferRecommendedVoice(voices, "de-DE", { recommended, platform: SAFARI }),
+        preferRecommendedVoice(voices, "de-DE", {
+          recommended,
+          platform: SAFARI,
+        }),
         voices[1]
       );
       // On Edge, "EdgeOnly" wins.
       assert.strictEqual(
-        preferRecommendedVoice(voices, "de-DE", { recommended, platform: EDGE }),
+        preferRecommendedVoice(voices, "de-DE", {
+          recommended,
+          platform: EDGE,
+        }),
         voices[0]
       );
     });
@@ -180,7 +223,9 @@ module(
 
 module("TTS Listen | Unit | preferRecommendedVoice | degrade", function () {
   test("returns null for a language absent from the index", function (assert) {
-    const recommended = index([{ name: "Anna", language: "de-DE", quality: ["high"], preloaded: true }]);
+    const recommended = index([
+      { name: "Anna", language: "de-DE", quality: ["high"], preloaded: true },
+    ]);
     const voices = [{ name: "X", lang: "ja-JP" }];
 
     assert.strictEqual(
@@ -191,7 +236,13 @@ module("TTS Listen | Unit | preferRecommendedVoice | degrade", function () {
 
   test("returns null when no recommended name is installed", function (assert) {
     const recommended = index([
-      { name: "Anna", language: "de-DE", quality: ["high"], preloaded: true, os: ["macOS"] },
+      {
+        name: "Anna",
+        language: "de-DE",
+        quality: ["high"],
+        preloaded: true,
+        os: ["macOS"],
+      },
     ]);
     const voices = [{ name: "Mystery Voice", lang: "de-DE" }];
 
@@ -230,8 +281,16 @@ module(
 
     test("Windows German → a Microsoft local voice (not an Edge-only one)", function (assert) {
       const voices = [
-        { name: "Microsoft Hedda - German (Germany)", lang: "de-DE", localService: true },
-        { name: "Microsoft Katja Online (Natural) - German (Germany)", lang: "de-DE", localService: false },
+        {
+          name: "Microsoft Hedda - German (Germany)",
+          lang: "de-DE",
+          localService: true,
+        },
+        {
+          name: "Microsoft Katja Online (Natural) - German (Germany)",
+          lang: "de-DE",
+          localService: false,
+        },
       ];
 
       // On plain Windows (no Edge browser tag), the Edge-only online voice
@@ -247,8 +306,16 @@ module(
 
     test("Edge German → the veryHigh Edge online voice", function (assert) {
       const voices = [
-        { name: "Microsoft Hedda - German (Germany)", lang: "de-DE", localService: true },
-        { name: "Microsoft Katja Online (Natural) - German (Germany)", lang: "de-DE", localService: false },
+        {
+          name: "Microsoft Hedda - German (Germany)",
+          lang: "de-DE",
+          localService: true,
+        },
+        {
+          name: "Microsoft Katja Online (Natural) - German (Germany)",
+          lang: "de-DE",
+          localService: false,
+        },
       ];
 
       // On Edge, the veryHigh Edge voice beats the normal local one
@@ -267,8 +334,16 @@ module(
       // with Edge's de-AT (Jonas) and de-DE (Katja) online voices, which tie
       // on every rank except region when the admin set a bare "de".
       const voices = [
-        { name: "Microsoft Jonas Online (Natural) - German (Austria)", lang: "de-AT", localService: false },
-        { name: "Microsoft Katja Online (Natural) - German (Germany)", lang: "de-DE", localService: false },
+        {
+          name: "Microsoft Jonas Online (Natural) - German (Austria)",
+          lang: "de-AT",
+          localService: false,
+        },
+        {
+          name: "Microsoft Katja Online (Natural) - German (Germany)",
+          lang: "de-DE",
+          localService: false,
+        },
       ];
 
       assert.strictEqual(
