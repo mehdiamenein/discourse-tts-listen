@@ -11,12 +11,70 @@ const VOICES = [
   { name: "Google français", lang: "fr-FR" },
 ];
 
-module("TTS Listen | Unit | selectVoice", function () {
+module("TTS Listen | Unit | selectVoice | user override", function () {
+  test("matches the persisted user voice by exact {lang, name} identity", function (assert) {
+    const result = selectVoice(VOICES, {
+      userVoice: { lang: "de-DE", name: "Microsoft Katja" },
+      defaultVoice: "en-US",
+    });
+
+    assert.strictEqual(result.voice, VOICES[2]);
+    assert.strictEqual(result.lang, "de-DE");
+    assert.true(result.matched);
+  });
+
+  test("the exact identity is matched even when a different voice speaks the same language", function (assert) {
+    const result = selectVoice(VOICES, {
+      userVoice: { lang: "de-DE", name: "Google Deutsch" },
+    });
+
+    assert.strictEqual(result.voice, VOICES[1]);
+    assert.true(result.matched);
+  });
+
+  test("falls back to any voice of the override language when the exact name is gone", function (assert) {
+    // The persisted voice ("Google Deutsch") was uninstalled; another German
+    // voice is still available and should be picked before the automatic
+    // ladder runs.
+    const result = selectVoice(VOICES, {
+      userVoice: { lang: "de-DE", name: "Google Deutsch (removed)" },
+      defaultVoice: "en-US",
+    });
+
+    assert.strictEqual(result.voice, VOICES[1]);
+    assert.strictEqual(result.lang, "de-DE");
+    assert.true(result.matched);
+  });
+
+  test("falls through to the automatic ladder when no voice of the override language exists", function (assert) {
+    const result = selectVoice(VOICES, {
+      userVoice: { lang: "ja-JP", name: "Google Japanese (removed)" },
+      defaultVoice: "de-DE",
+    });
+
+    assert.strictEqual(result.voice, VOICES[1]);
+    assert.strictEqual(result.lang, "de-DE");
+    assert.true(result.matched);
+  });
+
+  test("a null user override is no override — the automatic ladder runs", function (assert) {
+    const result = selectVoice(VOICES, {
+      userVoice: null,
+      defaultVoice: "de-DE",
+    });
+
+    assert.strictEqual(result.voice, VOICES[1]);
+    assert.true(result.matched);
+  });
+});
+
+module("TTS Listen | Unit | selectVoice | default voice", function () {
   test("selects a voice speaking the exact language code from the drop-down", function (assert) {
     const result = selectVoice(VOICES, { defaultVoice: "de-DE" });
 
     assert.strictEqual(result.voice, VOICES[1]);
     assert.strictEqual(result.lang, "de-DE");
+    assert.true(result.matched);
   });
 
   test("a primary-subtag code from the drop-down matches regional voices", function (assert) {
@@ -39,16 +97,7 @@ module("TTS Listen | Unit | selectVoice", function () {
     const result = selectVoice(mixed, { defaultVoice: "de-DE" });
 
     assert.strictEqual(result.voice, mixed[1]);
-  });
-
-  test("falls back to the fallback language when the default has no matching voice", function (assert) {
-    const result = selectVoice(VOICES, {
-      defaultVoice: "pt",
-      fallbackVoice: "de",
-    });
-
-    assert.strictEqual(result.voice, VOICES[1]);
-    assert.strictEqual(result.lang, "de-DE");
+    assert.true(result.matched);
   });
 
   // Regression guard: the drop-down values are language codes, so they must
@@ -64,63 +113,216 @@ module("TTS Listen | Unit | selectVoice", function () {
     assert.strictEqual(result.voice, voices[1]);
     assert.strictEqual(result.lang, "hi-IN");
   });
+});
 
-  test("treats the auto (no-preference) drop-down value as no preference", function (assert) {
-    const result = selectVoice(VOICES, {
-      defaultVoice: "auto",
-      fallbackVoice: "auto",
-      platformLang: "fr",
+module(
+  "TTS Listen | Unit | selectVoice | auto-gates-platform rule",
+  function () {
+    // The platform language is a guarded step, never a silent second choice
+    // after a configured default. When the admin sets a default that has no
+    // matching voice, the ladder must NOT swap to the platform language: it
+    // falls through to the browser languages instead.
+    test("a configured default with no match does not fall back to the platform language", function (assert) {
+      const result = selectVoice(VOICES, {
+        defaultVoice: "pt",
+        platformLang: "de",
+        browserLangs: ["fr"],
+      });
+
+      assert.strictEqual(result.voice, VOICES[3]);
+      assert.strictEqual(result.lang, "fr-FR");
+      assert.true(result.matched);
     });
 
-    assert.strictEqual(result.voice, VOICES[3]);
-  });
+    test("uses the platform language when the default is auto", function (assert) {
+      const result = selectVoice(VOICES, {
+        defaultVoice: "auto",
+        platformLang: "de",
+      });
 
-  test("prefers the platform language when no voice is configured", function (assert) {
-    const result = selectVoice(VOICES, { platformLang: "de" });
+      assert.strictEqual(result.voice, VOICES[1]);
+      assert.strictEqual(result.lang, "de-DE");
+      assert.true(result.matched);
+    });
+
+    test("an empty default is treated as auto and unlocks the platform language", function (assert) {
+      const result = selectVoice(VOICES, {
+        defaultVoice: "",
+        platformLang: "fr",
+      });
+
+      assert.strictEqual(result.voice, VOICES[3]);
+      assert.true(result.matched);
+    });
+
+    test("matches the platform language exactly before a prefix match", function (assert) {
+      const mixed = [
+        { name: "Austrian", lang: "de-AT" },
+        { name: "German", lang: "de-DE" },
+      ];
+      const result = selectVoice(mixed, {
+        defaultVoice: "auto",
+        platformLang: "de-DE",
+      });
+
+      assert.strictEqual(result.voice, mixed[1]);
+      assert.true(result.matched);
+    });
+  }
+);
+
+module("TTS Listen | Unit | selectVoice | browser languages", function () {
+  test("matches the first browser language that has a voice", function (assert) {
+    const result = selectVoice(VOICES, {
+      defaultVoice: "auto",
+      platformLang: "nl",
+      browserLangs: ["ja", "de"],
+    });
 
     assert.strictEqual(result.voice, VOICES[1]);
     assert.strictEqual(result.lang, "de-DE");
+    assert.true(result.matched);
   });
 
-  test("matches the platform language exactly before a prefix match", function (assert) {
-    const mixed = [
-      { name: "Austrian", lang: "de-AT" },
-      { name: "German", lang: "de-DE" },
-    ];
-    const result = selectVoice(mixed, { platformLang: "de-DE" });
-
-    assert.strictEqual(result.voice, mixed[1]);
-  });
-
-  test("falls back to the first device voice when the platform language is unavailable", function (assert) {
-    const result = selectVoice(VOICES, { platformLang: "nl" });
-
-    assert.strictEqual(result.voice, VOICES[0]);
-    assert.strictEqual(result.lang, "en-US");
-  });
-
-  test("returns no voice and keeps the platform language when no voices exist", function (assert) {
-    const result = selectVoice([], { platformLang: "de" });
-
-    assert.strictEqual(result.voice, null);
-    assert.strictEqual(result.lang, "de");
-  });
-
-  test("defaults the language to en-US when nothing matches at all", function (assert) {
-    const result = selectVoice([], {});
-
-    assert.strictEqual(result.voice, null);
-    assert.strictEqual(result.lang, "en-US");
-  });
-
-  test("ignores empty voice settings and falls through to language matching", function (assert) {
+  test("keeps trying browser languages in order until one matches", function (assert) {
     const result = selectVoice(VOICES, {
-      defaultVoice: "",
-      fallbackVoice: "",
-      platformLang: "fr",
+      defaultVoice: "auto",
+      platformLang: "zh",
+      browserLangs: ["ja", "ko", "fr"],
     });
 
     assert.strictEqual(result.voice, VOICES[3]);
+    assert.true(result.matched);
+  });
+
+  test("a primary browser language code matches a regional voice", function (assert) {
+    const result = selectVoice(VOICES, {
+      defaultVoice: "auto",
+      platformLang: "zh",
+      browserLangs: ["de"],
+    });
+
+    assert.strictEqual(result.voice, VOICES[1]);
+    assert.strictEqual(result.lang, "de-DE");
+    assert.true(result.matched);
+  });
+
+  test("browser languages run even when a non-auto default found no voice", function (assert) {
+    const result = selectVoice(VOICES, {
+      defaultVoice: "pt",
+      platformLang: "de",
+      browserLangs: ["ja", "en"],
+    });
+
+    assert.strictEqual(result.voice, VOICES[0]);
+    assert.strictEqual(result.lang, "en-US");
+    assert.true(result.matched);
+  });
+});
+
+module(
+  "TTS Listen | Unit | selectVoice | terminal fallback (temporary)",
+  function () {
+    // list[0] is kept TEMPORARILY so the player still speaks when nothing
+    // configured matches; it is removed in issue #18 in favour of the no-voice
+    // notice. Until then `matched: false` marks the pick as an unmatched
+    // fallback, not a configured preference.
+    test("falls back to the first device voice when nothing matches, with matched false", function (assert) {
+      const result = selectVoice(VOICES, {
+        defaultVoice: "auto",
+        platformLang: "nl",
+        browserLangs: ["ja"],
+      });
+
+      assert.strictEqual(result.voice, VOICES[0]);
+      assert.strictEqual(result.lang, "en-US");
+      assert.false(result.matched);
+    });
+
+    test("falls back to list[0] when a non-auto default and the browser languages all miss", function (assert) {
+      const result = selectVoice(VOICES, {
+        defaultVoice: "pt",
+        platformLang: "de",
+        browserLangs: ["ja", "ko"],
+      });
+
+      assert.strictEqual(result.voice, VOICES[0]);
+      assert.false(result.matched);
+    });
+
+    test("returns no voice and keeps the platform language when no voices exist", function (assert) {
+      const result = selectVoice([], { platformLang: "de" });
+
+      assert.strictEqual(result.voice, null);
+      assert.strictEqual(result.lang, "de");
+      assert.false(result.matched);
+    });
+
+    test("defaults the language to en-US when nothing matches at all", function (assert) {
+      const result = selectVoice([], {});
+
+      assert.strictEqual(result.voice, null);
+      assert.strictEqual(result.lang, "en-US");
+      assert.false(result.matched);
+    });
+  }
+);
+
+module("TTS Listen | Unit | selectVoice | full ladder order", function () {
+  // One voice per ladder step: a user override for Spanish, a default of
+  // Italian, a platform of Portuguese, a browser list of German, and a
+  // stray English voice that would only win as the list[0] terminal.
+  const LADDER = [
+    { name: "Español", lang: "es-ES" },
+    { name: "Italiano", lang: "it-IT" },
+    { name: "Português", lang: "pt-PT" },
+    { name: "Deutsch", lang: "de-DE" },
+    { name: "English", lang: "en-US" },
+  ];
+
+  test("user override wins over every automatic step", function (assert) {
+    const result = selectVoice(LADDER, {
+      userVoice: { lang: "es-ES", name: "Español" },
+      defaultVoice: "it-IT",
+      platformLang: "pt-PT",
+      browserLangs: ["de-DE"],
+    });
+
+    assert.strictEqual(result.voice, LADDER[0]);
+    assert.true(result.matched);
+  });
+
+  test("default voice wins over platform and browser when there is no override", function (assert) {
+    const result = selectVoice(LADDER, {
+      defaultVoice: "it-IT",
+      platformLang: "pt-PT",
+      browserLangs: ["de-DE"],
+    });
+
+    assert.strictEqual(result.voice, LADDER[1]);
+    assert.true(result.matched);
+  });
+
+  test("platform language wins over browser when the default is auto", function (assert) {
+    const result = selectVoice(LADDER, {
+      defaultVoice: "auto",
+      platformLang: "pt-PT",
+      browserLangs: ["de-DE"],
+    });
+
+    assert.strictEqual(result.voice, LADDER[2]);
+    assert.true(result.matched);
+  });
+
+  test("browser language is the terminal matching step before list[0]", function (assert) {
+    const result = selectVoice(LADDER, {
+      defaultVoice: "auto",
+      platformLang: "zh",
+      browserLangs: ["de-DE"],
+    });
+
+    assert.strictEqual(result.voice, LADDER[3]);
+    assert.true(result.matched);
   });
 });
 
@@ -196,5 +398,15 @@ module("TTS Listen | Unit | selectVoice | lang normalization", function () {
 
     assert.strictEqual(result.voice, voices[1]);
     assert.strictEqual(result.lang, "en-GB");
+  });
+
+  test("a user override identity is matched across normalized lang codes", function (assert) {
+    const voices = [{ name: "Android German", lang: "de_DE" }];
+    const result = selectVoice(voices, {
+      userVoice: { lang: "de-DE", name: "Android German" },
+    });
+
+    assert.strictEqual(result.voice, voices[0]);
+    assert.true(result.matched);
   });
 });

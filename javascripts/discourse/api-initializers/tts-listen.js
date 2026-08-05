@@ -300,19 +300,22 @@ class TTSPlayer {
     }
   }
 
-  // Pick the starting voice from the theme settings: an explicit default
-  // language, a fallback language, then the platform's default language,
-  // then the first voice available on the device. A user's own choice wins
-  // over all. The settings are enums of language codes; "auto" is treated
-  // as no preference by the matcher.
+  // Pick the starting voice from the selection ladder (ADR 0006): a
+  // persisted user override, then the admin's default language, then the
+  // platform language (only when the default is "auto"), then the browser
+  // languages. The user override is not persisted yet (issue #10), so
+  // userVoice is null for now; the unmatched `matched` flag is ignored until
+  // the no-voice notice lands (issue #18). A user's own dropdown choice
+  // always wins over all.
   applyDefaultSelection() {
     if (this.voiceChosen) {
       return;
     }
     const selection = selectVoice(this.synth.getVoices(), {
+      userVoice: null,
       defaultVoice: settings.default_voice,
-      fallbackVoice: settings.fallback_voice,
       platformLang: document.documentElement.lang,
+      browserLangs: navigator.languages,
     });
     this.voice = selection.voice;
     this.voiceLang = selection.lang;
