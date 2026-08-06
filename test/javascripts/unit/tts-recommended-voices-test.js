@@ -138,7 +138,7 @@ module(
       );
     });
 
-    test("a localizedName:'apple' entry is matched by name on Apple devices", function (assert) {
+    test("a localizedName:'apple' entry matches by its canonical name (the marker is documentation-only)", function (assert) {
       const recommended = index([
         {
           name: "Anna",
@@ -150,6 +150,23 @@ module(
         },
       ]);
       const voices = [{ name: "Anna", lang: "de-DE", localService: true }];
+
+      assert.strictEqual(
+        preferRecommendedVoice(voices, "de-DE", { recommended, platform: MAC }),
+        voices[0]
+      );
+    });
+
+    test("name matching is case-insensitive (vendor case drift)", function (assert) {
+      const recommended = index([
+        {
+          name: "Google Deutsch",
+          language: "de-DE",
+          quality: ["high"],
+          preloaded: true,
+        },
+      ]);
+      const voices = [{ name: "google deutsch", lang: "de-DE" }];
 
       assert.strictEqual(
         preferRecommendedVoice(voices, "de-DE", { recommended, platform: MAC }),

@@ -5,8 +5,10 @@
 // is a snapshot: regenerate with the refresh note
 // (docs/research/0002-refresh-recommended-voices.md) when Apple/Google/Microsoft
 // ship new voices. Only fields needed for selection are kept: `name`,
-// `altNames` (Android aliases), `localizedName: "apple"` (macOS localizes voice
-// names by system locale), `language` (region), `os`, `browser`, `quality`, and
+// `altNames` (Android aliases), `localizedName: "apple"` (a documentation-only
+// marker that macOS localizes the voice's display name by system locale —
+// matching is name/altNames-based, no localized-name lookup is performed),
+// `language` (region), `os`, `browser`, `quality`, and
 // `preloaded`. Verbose fields (label, gender, testUtterance, pitch, rate, note,
 // nativeID, multiLingual, children) are dropped.
 //
@@ -2566,6 +2568,10 @@ export const RECOMMENDED_VOICES = {
   },
 };
 
+// Shared "no platform detected" default for the pickers here and in
+// tts-selection.js: no os/browser tags, so only untagged entries match.
+export const EMPTY_PLATFORM = Object.freeze({ os: [], browser: [] });
+
 // Rank quality tiers; `quality` is an array of variants a voice ships in, so we
 // take the best one (veryHigh > high > normal > low).
 const QUALITY_RANK = { veryHigh: 3, high: 2, normal: 1, low: 0 };
@@ -2579,9 +2585,11 @@ function qualityRank(qualities) {
 
 // Minimal local normalization (lowercase, underscores to hyphens). Intentionally
 // not imported from tts-selection to keep this module cycle-free (tts-selection
-// imports preferRecommendedVoice from here). Configured language codes come
-// from the settings enum or navigator, so they are already two-letter; only the
-// family and a normalized region comparison are needed here.
+// imports preferRecommendedVoice from here). The caller (pickVoiceForLang)
+// passes an already-normalized code — Firefox three-letter primaries like
+// "deu" are mapped to the two-letter family keys by tts-selection's
+// normalizeLang — so only the family and a normalized region comparison are
+// needed here.
 function normalizeForLookup(code) {
   return String(code || "")
     .trim()
@@ -2641,7 +2649,7 @@ function byRank(a, b) {
 export function preferRecommendedVoice(
   voicesForLang,
   lang,
-  { recommended = {}, platform = { os: [], browser: [] } } = {}
+  { recommended = {}, platform = EMPTY_PLATFORM } = {}
 ) {
   const target = normalizeForLookup(lang);
   const family = target.split("-")[0];
@@ -2664,12 +2672,18 @@ export function preferRecommendedVoice(
     ) {
       return;
     }
+    // Name matching is case-insensitive to tolerate vendor case drift
+    // ("Google Deutsch" vs "Google deutsch", Android alias casing). The
+    // `localizedName: "apple"` marker is documentation-only and deliberately
+    // not consulted: current Apple voices report their canonical name
+    // unchanged regardless of system locale.
     const names = [entry.name];
     if (Array.isArray(entry.altNames)) {
       names.push(...entry.altNames);
     }
+    const lookupNames = names.map((name) => String(name).toLowerCase());
     for (const voice of voicesForLang) {
-      if (names.includes(voice.name)) {
+      if (lookupNames.includes(String(voice.name || "").toLowerCase())) {
         pairs.push({
           voice,
           index,

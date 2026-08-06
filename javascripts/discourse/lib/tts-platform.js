@@ -12,6 +12,13 @@
 // `ChromeOS`; `browser` ∈ `Edge`/`ChromeDesktop` (Safari, Firefox, and mobile
 // browsers get no browser-specific recommended voices).
 
+// Word-boundary token checks: a loose substring like ua.includes("win") or
+// .includes("mac") would also fire on "darwin"/"machine"-style tokens and is
+// only saved by branch order; real UAs always carry one of these explicit
+// tokens, so the checks are robust on their own.
+const MAC_OS_UA = /\bmac os\b|\bmacintosh\b/;
+const WINDOWS_UA = /\bwindows\b|\bwin32\b|\bwin64\b/;
+
 /**
  * @param {Navigator} navigator
  * @returns {{ os: string[], browser: string[] }}
@@ -24,8 +31,10 @@ export function detectPlatform(navigator) {
 
   let os = [];
   if (ua.includes("ipad")) {
-    // iPadOS reports a desktop Mac UA; carry both so Apple voices listed
-    // under macOS still match on an iPad.
+    // Mobile-mode iPads send a literal "iPad" UA; carry macOS too because
+    // Apple voices are tagged macOS and a desktop-mode iPad sends a plain
+    // Macintosh UA, which only hits the macOS branch below. The dual tag
+    // keeps both iPad modes matching the same Apple entries.
     os = ["iPadOS", "macOS"];
   } else if (ua.includes("iphone") || ua.includes("ipod")) {
     os = ["iOS"];
@@ -33,9 +42,9 @@ export function detectPlatform(navigator) {
     os = ["Android"];
   } else if (ua.includes("cros")) {
     os = ["ChromeOS"];
-  } else if (ua.includes("mac") || uaPlatform.includes("mac")) {
+  } else if (MAC_OS_UA.test(ua) || uaPlatform.startsWith("mac")) {
     os = ["macOS"];
-  } else if (ua.includes("win") || uaPlatform.includes("win")) {
+  } else if (WINDOWS_UA.test(ua) || uaPlatform.startsWith("win")) {
     os = ["Windows"];
   }
 

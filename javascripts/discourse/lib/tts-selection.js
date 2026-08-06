@@ -43,7 +43,10 @@
 // time. A user's own choice persists as a {lang, name} identity and always
 // wins (the player stops re-applying this ladder once one is made).
 
-import { preferRecommendedVoice } from "./tts-recommended-voices";
+import {
+  EMPTY_PLATFORM,
+  preferRecommendedVoice,
+} from "./tts-recommended-voices";
 
 /**
  * @param {Array<{ name: string, lang: string }>} voices
@@ -76,7 +79,7 @@ export function selectVoice(
     platformLang = "",
     browserLangs = [],
     recommended = {},
-    platform = { os: [], browser: [] },
+    platform = EMPTY_PLATFORM,
   } = {}
 ) {
   const list = Array.isArray(voices) ? voices : [];
@@ -302,14 +305,20 @@ export function collectForLang(voices, lang) {
 export function pickVoiceForLang(
   voices,
   lang,
-  { recommended = {}, platform = { os: [], browser: [] } } = {}
+  { recommended = {}, platform = EMPTY_PLATFORM } = {}
 ) {
   const collected = collectForLang(voices, lang);
   if (collected.length === 0) {
     return null;
   }
+  // Pass the normalized needle (not the raw lang) so a Firefox three-letter
+  // primary ("deu") still hits the index's two-letter family key ("de")
+  // instead of silently skipping the recommendation.
   return (
-    preferRecommendedVoice(collected, lang, { recommended, platform }) ||
+    preferRecommendedVoice(collected, normalizeLang(lang), {
+      recommended,
+      platform,
+    }) ||
     collected[0] ||
     null
   );

@@ -598,6 +598,19 @@ module("TTS Listen | Unit | pickVoiceForLang", function () {
     );
   });
 
+  // Firefox reports three-letter primaries ("deu"); the normalized needle
+  // must be passed to the recommendation lookup so "deu" still hits the
+  // index's "de" family key instead of silently skipping the recommendation.
+  test("a Firefox three-letter primary ('deu') still resolves the recommendation", function (assert) {
+    assert.strictEqual(
+      pickVoiceForLang(voices, "deu", {
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+      }),
+      voices[1]
+    );
+  });
+
   test("returns null when no voice of the language exists", function (assert) {
     assert.strictEqual(pickVoiceForLang(voices, "ja"), null);
   });

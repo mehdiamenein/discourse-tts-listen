@@ -108,4 +108,11 @@ module("TTS Listen | Unit | detectPlatform | edge cases", function () {
       browser: [],
     });
   });
+
+  // Word-boundary OS checks: substrings like "win" in "darwin" or "mac" in
+  // "machine" must not misdetect an OS.
+  test("UAs containing 'darwin' or 'machine'-like tokens are not misdetected", function (assert) {
+    assert.deepEqual(detectPlatform(nav("somebot/1.0 (darwin; x64)")).os, []);
+    assert.deepEqual(detectPlatform(nav("machine-crawler/2.0")).os, []);
+  });
 });
