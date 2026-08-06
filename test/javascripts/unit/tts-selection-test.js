@@ -4,7 +4,9 @@ import {
   collectForLang,
   groupVoicesByLang,
   normalizeLang,
+  parseAdminPin,
   pickVoiceForLang,
+  preferAdminPinnedVoice,
   selectVoice,
 } from "../../../discourse/lib/tts-selection";
 
@@ -696,6 +698,212 @@ module(
 
       assert.strictEqual(result.voice, voices[0]);
       assert.true(result.matched);
+    });
+  }
+);
+
+module("TTS Listen | Unit | parseAdminPin", function () {
+  test("auto and empty resolve to null (no pin)", function (assert) {
+    assert.strictEqual(parseAdminPin("auto"), null);
+    assert.strictEqual(parseAdminPin("AUTO"), null);
+    assert.strictEqual(parseAdminPin(""), null);
+    assert.strictEqual(parseAdminPin(null), null);
+    assert.strictEqual(parseAdminPin(undefined), null);
+  });
+
+  test('parses "<lang>: <name>" into {lang, name}', function (assert) {
+    assert.deepEqual(parseAdminPin("de-DE: Anna"), {
+      lang: "de-DE",
+      name: "Anna",
+    });
+  });
+
+  test("a name containing ' - ' (Microsoft voices) is kept intact", function (assert) {
+    const pin = parseAdminPin("de-DE: Microsoft Katja - German (Germany)");
+    assert.strictEqual(pin.lang, "de-DE");
+    assert.strictEqual(pin.name, "Microsoft Katja - German (Germany)");
+  });
+
+  test("a value with no separator is not a pin", function (assert) {
+    assert.strictEqual(parseAdminPin("Anna"), null);
+  });
+});
+
+module(
+  "TTS Listen | Unit | selectVoice | admin per-platform pin (ADR 0009)",
+  function () {
+    const MAC = { os: ["macOS"], browser: [] };
+    const CHROME = { os: [], browser: ["ChromeDesktop"] };
+    const EDGE_WIN = { os: ["Windows"], browser: ["Edge"] };
+
+    // Invariant I3: with every pin left on `auto` (the default), the ladder
+    // is byte-identical to the pre-feature behavior — a pure no-op guard.
+    test("I3 — no pins matches the pre-feature behavior", function (assert) {
+      const voices = [
+        { name: "Google Deutsch", lang: "de-DE" },
+        { name: "Anna", lang: "de-DE", localService: true },
+      ];
+      const withoutPins = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+      });
+      const withEmptyPins = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+        adminPins: {},
+      });
+
+      assert.strictEqual(withoutPins.voice, withEmptyPins.voice);
+      assert.strictEqual(withoutPins.matched, withEmptyPins.matched);
+    });
+
+    test("a pin wins over the recommended-voice index on its platform", function (assert) {
+      const voices = [
+        { name: "Google Deutsch", lang: "de-DE" },
+        { name: "Anna", lang: "de-DE", localService: true },
+      ];
+      const pins = { macOS: parseAdminPin("de-DE: Google Deutsch") };
+      const result = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+        adminPins: pins,
+      });
+
+      // Anna would be the macOS recommendation; the admin pin forces Google
+      // Deutsch instead.
+      assert.strictEqual(result.voice, voices[0]);
+      assert.true(result.matched);
+    });
+
+    test("a pin is ignored on a platform the visitor is not on", function (assert) {
+      const voices = [
+        { name: "Google Deutsch", lang: "de-DE" },
+        { name: "Anna", lang: "de-DE", localService: true },
+      ];
+      const pins = { macOS: parseAdminPin("de-DE: Google Deutsch") };
+      const result = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: CHROME,
+        adminPins: pins,
+      });
+
+      // On Chrome desktop the macOS pin does not apply; the Chrome
+      // recommendation (Google Deutsch) is picked.
+      assert.strictEqual(result.voice, voices[0]);
+    });
+
+    test("a pin whose language family does not match is ignored", function (assert) {
+      const voices = [{ name: "Anna", lang: "de-DE", localService: true }];
+      const pins = { macOS: parseAdminPin("en-US: Anna") };
+      const result = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+        adminPins: pins,
+      });
+
+      // The en pin must not honor when resolving de; Anna is picked only
+      // because the macOS recommendation names her, not because of the pin.
+      assert.strictEqual(result.voice, voices[0]);
+    });
+
+    test("a pin for a voice that is not installed falls through to the recommendation", function (assert) {
+      const voices = [{ name: "Anna", lang: "de-DE", localService: true }];
+      const pins = { macOS: parseAdminPin("de-DE: Petra") };
+      const result = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+        adminPins: pins,
+      });
+
+      assert.strictEqual(result.voice, voices[0]);
+    });
+
+    test("a browser pin (Edge) wins over an os pin (Windows) on the same device", function (assert) {
+      const voices = [
+        {
+          name: "Microsoft Katja Online (Natural) - German (Germany)",
+          lang: "de-DE",
+        },
+        { name: "Microsoft Hedda - German (Germany)", lang: "de-DE" },
+      ];
+      const pins = {
+        Windows: parseAdminPin("de-DE: Microsoft Hedda - German (Germany)"),
+        Edge: parseAdminPin(
+          "de-DE: Microsoft Katja Online (Natural) - German (Germany)"
+        ),
+      };
+      const result = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: EDGE_WIN,
+        adminPins: pins,
+      });
+
+      assert.strictEqual(result.voice, voices[0]);
+    });
+
+    test("a pin for a different region of the same language family honors", function (assert) {
+      const voices = [
+        { name: "Jonas", lang: "de-AT" },
+        { name: "Anna", lang: "de-DE", localService: true },
+      ];
+      const pins = { macOS: parseAdminPin("de-AT: Jonas") };
+      const result = selectVoice(voices, {
+        defaultVoice: "de",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+        adminPins: pins,
+      });
+
+      assert.strictEqual(result.voice, voices[0]);
+    });
+
+    test("the visitor's own override still wins over an admin pin", function (assert) {
+      const voices = [
+        { name: "Google Deutsch", lang: "de-DE" },
+        { name: "Anna", lang: "de-DE", localService: true },
+      ];
+      const pins = { macOS: parseAdminPin("de-DE: Google Deutsch") };
+      const result = selectVoice(voices, {
+        userVoice: { lang: "de-DE", name: "Anna" },
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+        adminPins: pins,
+      });
+
+      assert.strictEqual(result.voice, voices[1]);
+    });
+
+    test("preferAdminPinnedVoice returns null when the device has no matching tags", function (assert) {
+      const voices = [{ name: "Anna", lang: "de-DE" }];
+      const pins = { Windows: parseAdminPin("de-DE: Anna") };
+      const result = preferAdminPinnedVoice(voices, "de-DE", {
+        adminPins: pins,
+        platform: MAC,
+      });
+
+      assert.strictEqual(result, null);
+    });
+
+    test("an admin pin never changes whether a voice was found (I2-style)", function (assert) {
+      const voices = [{ name: "Google US English", lang: "en-US" }];
+      const pins = { macOS: parseAdminPin("de-DE: Anna") };
+      const result = selectVoice(voices, {
+        defaultVoice: "ja",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+        adminPins: pins,
+      });
+
+      assert.strictEqual(result.voice, null);
+      assert.false(result.matched);
     });
   }
 );

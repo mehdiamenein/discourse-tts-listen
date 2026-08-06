@@ -4,6 +4,14 @@ de:
     settings:
       default_rate: "Standard-Abspielgeschwindigkeit (1 = normal)."
       default_voice: „Bevorzugte Stimmen-Sprache (der Player versucht diese zuerst).“
+      voice_macos: „Empfohlener Stimmenname für Besucher auf Apple macOS, aus der kuratierten Liste. ‚auto‘ lässt die Komponente wählen; ein Name setzt das nur außer Kraft, wenn seine Sprache mit der gesprochenen übereinstimmt. Auf anderen Plattformen ignoriert."
+      voice_ios: „Empfohlener Stimmenname für Besucher auf Apple iPhone, aus der kuratierten Liste. ‚auto‘ lässt die Komponente wählen; ein Name setzt das nur außer Kraft, wenn seine Sprache mit der gesprochenen übereinstimmt. Auf anderen Plattformen ignoriert."
+      voice_ipados: „Empfohlener Stimmenname für Besucher auf Apple iPad, aus der kuratierten Liste. ‚auto‘ lässt die Komponente wählen; ein Name setzt das nur außer Kraft, wenn seine Sprache mit der gesprochenen übereinstimmt. Auf anderen Plattformen ignoriert."
+      voice_windows: „Empfohlener Stimmenname für Besucher auf Windows, aus der kuratierten Liste. ‚auto‘ lässt die Komponente wählen; ein Name setzt das nur außer Kraft, wenn seine Sprache mit der gesprochenen übereinstimmt. Auf anderen Plattformen ignoriert."
+      voice_android: „Empfohlener Stimmenname für Besucher auf Android, aus der kuratierten Liste. ‚auto‘ lässt die Komponente wählen; ein Name setzt das nur außer Kraft, wenn seine Sprache mit der gesprochenen übereinstimmt. Auf anderen Plattformen ignoriert."
+      voice_chromeos: „Empfohlener Stimmenname für Besucher auf ChromeOS, aus der kuratierten Liste. ‚auto‘ lässt die Komponente wählen; ein Name setzt das nur außer Kraft, wenn seine Sprache mit der gesprochenen übereinstimmt. Auf anderen Plattformen ignoriert."
+      voice_chrome_desktop: „Empfohlener Stimmenname für Besucher auf Chrome am Desktop (Google-Stimmen), aus der kuratierten Liste. ‚auto‘ lässt die Komponente wählen; ein Name setzt das nur außer Kraft, wenn seine Sprache mit der gesprochenen übereinstimmt. Auf anderen Plattformen ignoriert."
+      voice_edge: „Empfohlener Stimmenname für Besucher auf Edge (Microsoft-Online-Stimmen), aus der kuratierten Liste. ‚auto‘ lässt die Komponente wählen; ein Name setzt das nur außer Kraft, wenn seine Sprache mit der gesprochenen übereinstimmt. Auf anderen Plattformen ignoriert."
       show_voice_selector: "Besuchern erlauben, aus den auf ihrem Gerät installierten Stimmen zu wählen."
       skip_code_blocks: "Codeblöcke nicht vorlesen."
       skip_quotes: "Zitierte Inhalte nicht vorlesen."
