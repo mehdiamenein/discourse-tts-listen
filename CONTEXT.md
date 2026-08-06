@@ -35,11 +35,30 @@ selection, and only matched against voices that actually exist on the device.
 _Avoid_: device language, system language, locale
 
 **Default voice**:
-The single theme setting that pins a preferred voice language, chosen from a
+The single theme setting that pins a preferred voice *language*, chosen from a
 drop-down of language codes (e.g. `de` or `de-DE`). `auto` means no
 preference: follow the platform language. There is deliberately no second
-"fallback" language setting — see ADR 0006.
+"fallback" language setting — see ADR 0006 — and no per-voice-name setting:
+the specific voice within the language is chosen per platform from a curated
+recommended-voice index — see ADR 0008.
 _Avoid_: primary voice, preferred voice
+
+**Recommended voice**:
+The device voice the component prefers *within* the resolved language, picked
+from a vendored index of curated voices (derived from Readium Speech) keyed by
+language and platform. The index carries each voice's `name`, `altNames`
+(Android aliases) and `localizedName: "apple"` (macOS localizes voice names by
+system locale), with `os`/`browser`, `quality` and `preloaded` fields for
+ranking. When no recommended voice is installed, selection falls back to any
+voice of the language (today's behavior). The visitor override always wins.
+_Avoid_: default voice, preferred voice, pinned voice
+
+**Platform tag**:
+The coarse `os`/`browser` label the component derives from `navigator`
+(`macOS`/`iOS`/`iPadOS`/`Windows`/`Android`/`ChromeOS`, `Edge`/`ChromeDesktop`),
+used to filter the recommended-voice index to voices that exist on the
+visitor's device family. A best-effort filter, not authoritative.
+_Avoid_: user agent, device fingerprint
 
 **Voice identity**:
 The pair `{lang, name}` that identifies a device voice across sessions. The

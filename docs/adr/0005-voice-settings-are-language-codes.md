@@ -1,5 +1,10 @@
 # Voice settings are language codes from a drop-down, not free-text names
 
+**Status:** Amended by [ADR 0008](0008-per-platform-recommended-voice.md). The
+admin still configures only a language; the specific voice *within* that
+language is now chosen per platform from a curated recommended-voice index
+shipped by the component.
+
 The `default_voice` and `fallback_voice` theme settings are `enum` drop-downs
 of language codes (BCP 47, e.g. `de`, `de-DE`, `en-US`), with `auto` meaning
 "no preference". The player matches a setting value against device voices by

@@ -1,7 +1,10 @@
 import { module, test } from "qunit";
+import { RECOMMENDED_VOICES } from "../../../discourse/lib/tts-recommended-voices";
 import {
+  collectForLang,
   groupVoicesByLang,
   normalizeLang,
+  pickVoiceForLang,
   selectVoice,
 } from "../../../discourse/lib/tts-selection";
 
@@ -527,3 +530,172 @@ module("TTS Listen | Unit | groupVoicesByLang", function () {
     assert.deepEqual(groupVoicesByLang(null), []);
   });
 });
+
+module("TTS Listen | Unit | collectForLang", function () {
+  const voices = [
+    { name: "Google US English", lang: "en-US" },
+    { name: "Google Deutsch", lang: "de-DE" },
+    { name: "Microsoft Katja", lang: "de-DE" },
+    { name: "Austrian", lang: "de-AT" },
+  ];
+
+  test("lists exact-normalized matches first, then family matches", function (assert) {
+    assert.deepEqual(
+      collectForLang(voices, "de").map((v) => v.name),
+      ["Google Deutsch", "Microsoft Katja", "Austrian"]
+    );
+  });
+
+  test("an exact regional code returns only exact matches first", function (assert) {
+    assert.deepEqual(
+      collectForLang(voices, "de-DE").map((v) => v.name),
+      ["Google Deutsch", "Microsoft Katja", "Austrian"]
+    );
+  });
+
+  test("dedupes a voice that matches both exactly and by family", function (assert) {
+    const dups = [{ name: "Only", lang: "de-DE" }];
+    assert.deepEqual(
+      collectForLang(dups, "de-DE").map((v) => v.name),
+      ["Only"]
+    );
+    assert.strictEqual(collectForLang(dups, "de-DE").length, 1);
+  });
+
+  test("returns an empty array when no voice matches", function (assert) {
+    assert.deepEqual(collectForLang(voices, "ja"), []);
+  });
+
+  test("returns an empty array for an empty/missing code", function (assert) {
+    assert.deepEqual(collectForLang(voices, ""), []);
+    assert.deepEqual(collectForLang(voices, undefined), []);
+  });
+});
+
+module("TTS Listen | Unit | pickVoiceForLang", function () {
+  // Google Deutsch first so the no-recommendation pick (first collected
+  // voice) is NOT the recommended one — the recommendation then visibly
+  // changes which voice is picked.
+  const voices = [
+    { name: "Google Deutsch", lang: "de-DE", localService: false },
+    { name: "Anna", lang: "de-DE", localService: true },
+  ];
+  const MAC = { os: ["macOS"], browser: [] };
+
+  test("with no recommendation, returns the first collected voice (today's behavior)", function (assert) {
+    // Invariant I1: no recommendation resolving → identical to the old
+    // findForLang (first exact, then first family).
+    assert.strictEqual(pickVoiceForLang(voices, "de-DE"), voices[0]);
+  });
+
+  test("with a recommendation, prefers the recommended voice of the language", function (assert) {
+    assert.strictEqual(
+      pickVoiceForLang(voices, "de-DE", {
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+      }),
+      voices[1]
+    );
+  });
+
+  // Firefox reports three-letter primaries ("deu"); the normalized needle
+  // must be passed to the recommendation lookup so "deu" still hits the
+  // index's "de" family key instead of silently skipping the recommendation.
+  test("a Firefox three-letter primary ('deu') still resolves the recommendation", function (assert) {
+    assert.strictEqual(
+      pickVoiceForLang(voices, "deu", {
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+      }),
+      voices[1]
+    );
+  });
+
+  test("returns null when no voice of the language exists", function (assert) {
+    assert.strictEqual(pickVoiceForLang(voices, "ja"), null);
+  });
+});
+
+module(
+  "TTS Listen | Unit | selectVoice | recommended-voice layer (ADR 0008)",
+  function () {
+    const MAC = { os: ["macOS"], browser: [] };
+
+    // Invariant I1: with no recommendation resolving, selectVoice returns
+    // exactly what it returned before this feature — a pure no-op guard.
+    test("I1 — without a recommendation the result matches the pre-feature behavior", function (assert) {
+      const voices = [
+        { name: "Google Deutsch", lang: "de-DE" },
+        { name: "Microsoft Katja", lang: "de-DE" },
+      ];
+      const withoutRec = selectVoice(voices, { defaultVoice: "de-DE" });
+      const withEmptyRec = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: {},
+        platform: MAC,
+      });
+
+      assert.strictEqual(withoutRec.voice, voices[0]);
+      assert.strictEqual(withoutRec.voice, voices[0]);
+      assert.strictEqual(withoutRec.matched, withEmptyRec.matched);
+    });
+
+    // Invariant I2: adding a recommended-voice index can only change WHICH
+    // voice is picked within a language, never whether one was found — so the
+    // no-voice notice never fires because of this change.
+    test("I2 — a recommendation changes which voice, not whether one was found", function (assert) {
+      // Google Deutsch first: without a recommendation the first collected
+      // voice (Google Deutsch) is picked; with the macOS recommendation,
+      // Anna is preferred — matched stays true in both cases.
+      const voices = [
+        { name: "Google Deutsch", lang: "de-DE", localService: false },
+        { name: "Anna", lang: "de-DE", localService: true },
+      ];
+      const withoutRec = selectVoice(voices, { defaultVoice: "de-DE" });
+      const withRec = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+      });
+
+      assert.true(withoutRec.matched);
+      assert.true(withRec.matched);
+      assert.strictEqual(withoutRec.voice, voices[0]);
+      assert.strictEqual(withRec.voice, voices[1]);
+    });
+
+    test("I2 — the no-voice result is identical with and without a recommendation", function (assert) {
+      const voices = [{ name: "Google US English", lang: "en-US" }];
+      const withoutRec = selectVoice(voices, {
+        defaultVoice: "auto",
+        platformLang: "nl",
+        browserLangs: ["ja"],
+      });
+      const withRec = selectVoice(voices, {
+        defaultVoice: "auto",
+        platformLang: "nl",
+        browserLangs: ["ja"],
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+      });
+
+      assert.strictEqual(withoutRec.voice, null);
+      assert.strictEqual(withRec.voice, null);
+      assert.false(withoutRec.matched);
+      assert.false(withRec.matched);
+      assert.strictEqual(withoutRec.lang, withRec.lang);
+    });
+
+    test("a recommendation with no matching voice degrades to any voice of the language", function (assert) {
+      const voices = [{ name: "Mystery Voice", lang: "de-DE" }];
+      const result = selectVoice(voices, {
+        defaultVoice: "de-DE",
+        recommended: RECOMMENDED_VOICES,
+        platform: MAC,
+      });
+
+      assert.strictEqual(result.voice, voices[0]);
+      assert.true(result.matched);
+    });
+  }
+);

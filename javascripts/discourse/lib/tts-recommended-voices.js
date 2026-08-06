@@ -1,0 +1,2704 @@
+// Vendored, compact recommended-voice index and pure picker.
+//
+// Derived from the Readium Speech project (https://github.com/readium/speech),
+// the curated per-language list of recommended speech-synthesis voices. This
+// is a snapshot: regenerate with the refresh note
+// (docs/research/0002-refresh-recommended-voices.md) when Apple/Google/Microsoft
+// ship new voices. Only fields needed for selection are kept: `name`,
+// `altNames` (Android aliases), `localizedName: "apple"` (a documentation-only
+// marker that macOS localizes the voice's display name by system locale —
+// matching is name/altNames-based, no localized-name lookup is performed),
+// `language` (region), `os`, `browser`, `quality`, and
+// `preloaded`. Verbose fields (label, gender, testUtterance, pitch, rate, note,
+// nativeID, multiLingual, children) are dropped.
+//
+// ADR 0008: the admin still configures only a language; the component ships this
+// per-platform name preference. `preferRecommendedVoice` refines WHICH voice of
+// the resolved language is picked; it never changes which language is resolved
+// and never triggers the no-voice notice that wouldn't have triggered anyway.
+// When no recommended name is installed, the caller falls back to any voice of
+// the language (today's behavior) — see the regression invariants I1/I2 in
+// tts-selection.js.
+//
+// Core languages are vendored here (de, en, fr, es, it, pt, nl). Languages not
+// in the index degrade gracefully to today's behavior (return null); expand the
+// set via the refresh note.
+
+export const RECOMMENDED_VOICES = {
+  de: {
+    defaultRegion: "de-DE",
+    voices: [
+      {
+        name: "Microsoft SeraphinaMultilingual Online (Natural) - German (Germany)",
+        language: "de-DE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Amala Online (Natural) - German (Germany)",
+        language: "de-DE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Katja Online (Natural) - German (Germany)",
+        language: "de-DE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft FlorianMultilingual Online (Natural) - German (Germany)",
+        language: "de-DE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Conrad Online (Natural) - German (Germany)",
+        language: "de-DE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Killian Online (Natural) - German (Germany)",
+        language: "de-DE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Ingrid Online (Natural) - German (Austria)",
+        language: "de-AT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Jonas Online (Natural) - German (Austria)",
+        language: "de-AT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Leni Online (Natural) - German (Switzerland)",
+        language: "de-CH",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Jan Online (Natural) - German (Switzerland)",
+        language: "de-CH",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Google Deutsch",
+        language: "de-DE",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Petra",
+        language: "de-DE",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Anna",
+        language: "de-DE",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Helena",
+        language: "de-DE",
+        quality: ["low"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Markus",
+        language: "de-DE",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Viktor",
+        language: "de-DE",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Yannick",
+        language: "de-DE",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Martin",
+        language: "de-DE",
+        quality: ["low"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Hedda - German (Germany)",
+        language: "de-DE",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Katja - German (Germany)",
+        language: "de-DE",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Stefan - German (Germany)",
+        language: "de-DE",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Michael - German (Austria)",
+        language: "de-AT",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Karsten - German (Switzerland)",
+        language: "de-CH",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Google Deutsch 2 (Natural)",
+        language: "de-DE",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google de-de-x-dea-network",
+          "Chrome OS Deutsch 2",
+          "Android Speech Recognition and Synthesis from Google de-de-x-dea-local",
+          "Android Speech Recognition and Synthesis from Google de-DE-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Deutsch 1 (Natural)",
+        language: "de-DE",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google de-de-x-nfh-network",
+          "Chrome OS Deutsch 1",
+          "Android Speech Recognition and Synthesis from Google de-de-x-nfh-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Deutsch 3 (Natural)",
+        language: "de-DE",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google de-de-x-deb-network",
+          "Chrome OS Deutsch 3",
+          "Android Speech Recognition and Synthesis from Google de-de-x-deb-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Deutsch 4 (Natural)",
+        language: "de-DE",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google de-de-x-deg-network",
+          "Chrome OS Deutsch 4",
+          "Android Speech Recognition and Synthesis from Google de-de-x-deg-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+    ],
+  },
+  en: {
+    defaultRegion: "en-US",
+    voices: [
+      {
+        name: "Microsoft EmmaMultilingual Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        altNames: ["Microsoft Emma Online (Natural) - English (United States)"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft AvaMultilingual Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        altNames: ["Microsoft Ava Online (Natural) - English (United States)"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Jenny Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Aria Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Michelle Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Ana Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft AndrewMultilingual Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        altNames: [
+          "Microsoft Andrew Online (Natural) - English (United States)",
+        ],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft BrianMultilingual Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        altNames: [
+          "Microsoft Brian Online (Natural) - English (United States)",
+        ],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Guy Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Eric Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Steffan Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Christopher Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Roger Online (Natural) - English (United States)",
+        language: "en-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Sonia Online (Natural) - English (United Kingdom)",
+        language: "en-GB",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Libby Online (Natural) - English (United Kingdom)",
+        language: "en-GB",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Maisie Online (Natural) - English (United Kingdom)",
+        language: "en-GB",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Ryan Online (Natural) - English (United Kingdom)",
+        language: "en-GB",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Thomas Online (Natural) - English (United Kingdom)",
+        language: "en-GB",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Natasha Online (Natural) - English (Australia)",
+        language: "en-AU",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Hayley Online - English (Australia)",
+        language: "en-AU",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft William Online (Natural) - English (Australia)",
+        language: "en-AU",
+        quality: ["veryHigh"],
+        altNames: [
+          "Microsoft WilliamMultilingual Online (Natural) - English (Australia)",
+        ],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Clara Online (Natural) - English (Canada)",
+        language: "en-CA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Heather Online - English (Canada)",
+        language: "en-CA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Liam Online (Natural) - English (Canada)",
+        language: "en-CA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Neerja Online (Natural) - English (India)",
+        language: "en-IN",
+        quality: ["veryHigh"],
+        altNames: [
+          "Microsoft Neerja Online (Natural) - English (India) (Preview)",
+        ],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Prabhat Online (Natural) - English (India)",
+        language: "en-IN",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Emily Online (Natural) - English (Ireland)",
+        language: "en-IE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Connor Online (Natural) - English (Ireland)",
+        language: "en-IE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Leah Online (Natural) - English (South Africa)",
+        language: "en-ZA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Luke Online (Natural) - English (South Africa)",
+        language: "en-ZA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Yan Online (Natural) - English (Hong Kong SAR)",
+        language: "en-HK",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Sam Online (Natural) - English (Hongkong)",
+        language: "en-HK",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Asilia Online (Natural) - English (Kenya)",
+        language: "en-KE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Chilemba Online (Natural) - English (Kenya)",
+        language: "en-KE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Molly Online (Natural) - English (New Zealand)",
+        language: "en-NZ",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Mitchell Online (Natural) - English (New Zealand)",
+        language: "en-NZ",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Ezinne Online (Natural) - English (Nigeria)",
+        language: "en-NG",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Abeo Online (Natural) - English (Nigeria)",
+        language: "en-NG",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Rosa Online (Natural) - English (Philippines)",
+        language: "en-PH",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft James Online (Natural) - English (Philippines)",
+        language: "en-PH",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Luna Online (Natural) - English (Singapore)",
+        language: "en-SG",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Wayne Online (Natural) - English (Singapore)",
+        language: "en-SG",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Imani Online (Natural) - English (Tanzania)",
+        language: "en-TZ",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Elimu Online (Natural) - English (Tanzania)",
+        language: "en-TZ",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Google US English",
+        language: "en-US",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Google UK English Female",
+        language: "en-GB",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Google UK English Male",
+        language: "en-GB",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Ava",
+        language: "en-US",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Zoe",
+        language: "en-US",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Allison",
+        language: "en-US",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Nicky",
+        language: "en-US",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Samantha",
+        language: "en-US",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Joelle",
+        language: "en-US",
+        quality: ["normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Evan",
+        language: "en-US",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Nathan",
+        language: "en-US",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Tom",
+        language: "en-US",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Alex",
+        language: "en-US",
+        quality: ["high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Aaron",
+        language: "en-US",
+        quality: ["low"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Kate",
+        language: "en-GB",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Stephanie",
+        language: "en-GB",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Serena",
+        language: "en-GB",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Martha",
+        language: "en-GB",
+        quality: ["low"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Jamie",
+        language: "en-GB",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Oliver",
+        language: "en-GB",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Daniel",
+        language: "en-GB",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Arthur",
+        language: "en-GB",
+        quality: ["low"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Matilda",
+        language: "en-AU",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Karen",
+        language: "en-AU",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Catherine",
+        language: "en-AU",
+        quality: ["low"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Lee",
+        language: "en-AU",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Gordon",
+        language: "en-AU",
+        quality: ["low"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Aman",
+        language: "en-IN",
+        quality: ["high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Tara",
+        language: "en-IN",
+        quality: ["high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Isha",
+        language: "en-IN",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Sangeeta",
+        language: "en-IN",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Veena",
+        language: "en-IN",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Rishi",
+        language: "en-IN",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Moira",
+        language: "en-IE",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Tessa",
+        language: "en-ZA",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Fiona",
+        language: "en-GB-u-sd-gbsct",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Microsoft Zira - English (United States)",
+        language: "en-US",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft David - English (United States)",
+        language: "en-US",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Mark - English (United States)",
+        language: "en-US",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Hazel - English (Great Britain)",
+        language: "en-GB",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Susan - English (Great Britain)",
+        language: "en-GB",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft George - English (Great Britain)",
+        language: "en-GB",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Catherine - English (Austalia)",
+        language: "en-AU",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Richard - English (Australia)",
+        language: "en-AU",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Linda - English (Canada)",
+        language: "en-CA",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Richard - English (Canada)",
+        language: "en-CA",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Heera - English (India)",
+        language: "en-IN",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Ravi - English (India)",
+        language: "en-IN",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Sean - English (Ireland)",
+        language: "en-IE",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Google US English 5 (Natural)",
+        language: "en-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-us-x-tpc-network",
+          "Chrome OS US English 5",
+          "Android Speech Recognition and Synthesis from Google en-us-x-tpc-local",
+          "Android Speech Recognition and Synthesis from Google en-US-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google US English 1 (Natural)",
+        language: "en-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-us-x-iob-network",
+          "Chrome OS US English 1",
+          "Android Speech Recognition and Synthesis from Google en-us-x-iob-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google US English 2 (Natural)",
+        language: "en-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-us-x-iog-network",
+          "Chrome OS US English 2",
+          "Android Speech Recognition and Synthesis from Google en-us-x-iog-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google US English 7 (Natural)",
+        language: "en-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-us-x-tpf-network",
+          "Chrome OS US English 7",
+          "Android Speech Recognition and Synthesis from Google en-us-x-tpf-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google en-us-x-sfg-network",
+        language: "en-US",
+        quality: ["normal"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-us-x-sfg-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Chrome OS US English 8",
+        language: "en-US",
+        quality: ["low"],
+        os: ["ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google US English 4 (Natural)",
+        language: "en-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-us-x-iom-network",
+          "Chrome OS US English 4",
+          "Android Speech Recognition and Synthesis from Google en-us-x-iom-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google US English 3 (Natural)",
+        language: "en-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-us-x-iol-network",
+          "Chrome OS US English 3",
+          "Android Speech Recognition and Synthesis from Google en-us-x-iol-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google US English 6 (Natural)",
+        language: "en-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-us-x-tpd-network",
+          "Chrome OS US English 6",
+          "Android Speech Recognition and Synthesis from Google en-us-x-tpd-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google UK English 2 (Natural)",
+        language: "en-GB",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gba-network",
+          "Chrome OS UK English 2",
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gba-local",
+          "Android Speech Recognition and Synthesis from Google en-GB-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google UK English 4 (Natural)",
+        language: "en-GB",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gbc-network",
+          "Chrome OS UK English 4",
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gbc-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google UK English 6 (Natural)",
+        language: "en-GB",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gbg-network",
+          "Chrome OS UK English 6",
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gbg-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Chrome OS UK English 7",
+        language: "en-GB",
+        quality: ["low"],
+        os: ["ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google UK English 1 (Natural)",
+        language: "en-GB",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-gb-x-rjs-network",
+          "Chrome OS UK English 1",
+          "Android Speech Recognition and Synthesis from Google en-gb-x-rjs-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google UK English 3 (Natural)",
+        language: "en-GB",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gbb-network",
+          "Chrome OS UK English 3",
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gbb-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google UK English 5 (Natural)",
+        language: "en-GB",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gbd-network",
+          "Chrome OS UK English 5",
+          "Android Speech Recognition and Synthesis from Google en-gb-x-gbd-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Australian English 1 (Natural)",
+        language: "en-AU",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-au-x-aua-network",
+          "Chrome OS Australian English 1",
+          "Android Speech Recognition and Synthesis from Google en-au-x-aua-local",
+          "Android Speech Recognition and Synthesis from Google en-AU-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Australian English 3 (Natural)",
+        language: "en-AU",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-au-x-auc-network",
+          "Chrome OS Australian English 3",
+          "Android Speech Recognition and Synthesis from Google en-au-x-auc-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Australian English 2 (Natural)",
+        language: "en-AU",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-au-x-aub-network",
+          "Chrome OS Australian English 2",
+          "Android Speech Recognition and Synthesis from Google en-au-x-aub-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Australian English 4 (Natural)",
+        language: "en-AU",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-au-x-aud-network",
+          "Chrome OS Australian English 4",
+          "Android Speech Recognition and Synthesis from Google en-au-x-aud-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Chrome OS Australian English 5",
+        language: "en-AU",
+        quality: ["high"],
+        os: ["ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google en-in-x-ena-network",
+        language: "en-IN",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-in-x-ena-local",
+          "Android Speech Recognition and Synthesis from Google en-IN-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google en-in-x-enc-network",
+        language: "en-IN",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-in-x-enc-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google en-in-x-end-network",
+        language: "en-IN",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-in-x-end-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google en-in-x-ene-network",
+        language: "en-IN",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google en-in-x-ene-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+    ],
+  },
+  fr: {
+    defaultRegion: "fr-FR",
+    voices: [
+      {
+        name: "Microsoft VivienneMultilingual Online (Natural) - French (France)",
+        language: "fr-FR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Denise Online (Natural) - French (France)",
+        language: "fr-FR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Charline Online (Natural) - French (Belgium)",
+        language: "fr-BE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Ariane Online (Natural) - French (Switzerland)",
+        language: "fr-CH",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Eloise Online (Natural) - French (France)",
+        language: "fr-FR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft RemyMultilingual Online (Natural) - French (France)",
+        language: "fr-FR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Henri Online (Natural) - French (France)",
+        language: "fr-FR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Gerard Online (Natural) - French (Belgium)",
+        language: "fr-BE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Fabrice Online (Natural) - French (Switzerland)",
+        language: "fr-CH",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Sylvie Online (Natural) - French (Canada)",
+        language: "fr-CA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Antoine Online (Natural) - French (Canada)",
+        language: "fr-CA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Jean Online (Natural) - French (Canada)",
+        language: "fr-CA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Thierry Online (Natural) - French (Canada)",
+        language: "fr-CA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Google français",
+        language: "fr-FR",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Audrey",
+        language: "fr-FR",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Aurélie",
+        language: "fr-FR",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Marie",
+        language: "fr-FR",
+        quality: ["low"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Thomas",
+        language: "fr-FR",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Aude",
+        language: "fr-BE",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Chantal",
+        language: "fr-CA",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Amélie",
+        language: "fr-CA",
+        quality: ["low", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Nicolas",
+        language: "fr-CA",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Microsoft Julie - French (France)",
+        language: "fr-FR",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Hortence - French (France)",
+        language: "fr-FR",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Paul - French (France)",
+        language: "fr-FR",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Caroline - French (Canada)",
+        language: "fr-CA",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Claude - French (Canada)",
+        language: "fr-CA",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Claude - French (Switzerland)",
+        language: "fr-CH",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Google français 4 (Natural)",
+        language: "fr-FR",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-frc-network",
+          "Chrome OS français 4",
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-frc-local",
+          "Android Speech Recognition and Synthesis from Google fr-FR-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google français 2 (Natural)",
+        language: "fr-FR",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-fra-network",
+          "Chrome OS français 2",
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-fra-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google français 1 (Natural)",
+        language: "fr-FR",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-vlf-network",
+          "Chrome OS français 1",
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-vlf-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google français 5 (Natural)",
+        language: "fr-FR",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-frd-network",
+          "Chrome OS français 5",
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-frd-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google français 3 (Natural)",
+        language: "fr-FR",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-frb-network",
+          "Chrome OS français 3",
+          "Android Speech Recognition and Synthesis from Google fr-fr-x-frb-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google fr-ca-x-caa-network",
+        language: "fr-CA",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google fr-ca-x-caa-local",
+          "Android Speech Recognition and Synthesis from Google fr-CA-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google fr-ca-x-cac-network",
+        language: "fr-CA",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google fr-ca-x-cac-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google fr-ca-x-cab-network",
+        language: "fr-CA",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google fr-ca-x-cab-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google fr-ca-x-cad-network",
+        language: "fr-CA",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google fr-ca-x-cad-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+    ],
+  },
+  es: {
+    defaultRegion: "es-ES",
+    voices: [
+      {
+        name: "Microsoft Elvira Online (Natural) - Spanish (Spain)",
+        language: "es-ES",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Alvaro Online (Natural) - Spanish (Spain)",
+        language: "es-ES",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Dalia Online (Natural) - Spanish (Mexico)",
+        language: "es-MX",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Jorge Online (Natural) - Spanish (Mexico)",
+        language: "es-MX",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Elena Online (Natural) - Spanish (Argentina)",
+        language: "es-AR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Tomas Online (Natural) - Spanish (Argentina)",
+        language: "es-AR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Sofia Online (Natural) - Spanish (Bolivia)",
+        language: "es-BO",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Marcelo Online (Natural) - Spanish (Bolivia)",
+        language: "es-BO",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Catalina Online (Natural) - Spanish (Chile)",
+        language: "es-CL",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Lorenzo Online (Natural) - Spanish (Chile)",
+        language: "es-CL",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Ximena Online (Natural) - Spanish (Colombia)",
+        language: "es-CO",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Salome Online (Natural) - Spanish (Colombia)",
+        language: "es-CO",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Gonzalo Online (Natural) - Spanish (Colombia)",
+        language: "es-CO",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Maria Online (Natural) - Spanish (Costa Rica)",
+        language: "es-CR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Juan Online (Natural) - Spanish (Costa Rica)",
+        language: "es-CR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Belkys Online (Natural) - Spanish (Cuba)",
+        language: "es-CU",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Manuel Online (Natural) - Spanish (Cuba)",
+        language: "es-CU",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Andrea Online (Natural) - Spanish (Ecuador)",
+        language: "es-EC",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Luis Online (Natural) - Spanish (Ecuador)",
+        language: "es-EC",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Lorena Online (Natural) - Spanish (El Salvador)",
+        language: "es-SV",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Rodrigo Online (Natural) - Spanish (El Salvador)",
+        language: "es-SV",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Paloma Online (Natural) - Spanish (United States)",
+        language: "es-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Alonso Online (Natural) - Spanish (United States)",
+        language: "es-US",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Marta Online (Natural) - Spanish (Guatemala)",
+        language: "es-GT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Andres Online (Natural) - Spanish (Guatemala)",
+        language: "es-GT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Teresa Online (Natural) - Spanish (Equatorial Guinea)",
+        language: "es-GQ",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Javier Online (Natural) - Spanish (Equatorial Guinea)",
+        language: "es-GQ",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Karla Online (Natural) - Spanish (Honduras)",
+        language: "es-HN",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Carlos Online (Natural) - Spanish (Honduras)",
+        language: "es-HN",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Yolanda Online (Natural) - Spanish (Nicaragua)",
+        language: "es-NI",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Federico Online (Natural) - Spanish (Nicaragua)",
+        language: "es-NI",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Margarita Online (Natural) - Spanish (Panama)",
+        language: "es-PA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Roberto Online (Natural) - Spanish (Panama)",
+        language: "es-PA",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Tania Online (Natural) - Spanish (Paraguay)",
+        language: "es-PY",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Mario Online (Natural) - Spanish (Paraguay)",
+        language: "es-PY",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Camila Online (Natural) - Spanish (Peru)",
+        language: "es-PE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Alex Online (Natural) - Spanish (Peru)",
+        language: "es-PE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Karina Online (Natural) - Spanish (Puerto Rico)",
+        language: "es-PR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Victor Online (Natural) - Spanish (Puerto Rico)",
+        language: "es-PR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Ramona Online (Natural) - Spanish (Dominican Republic)",
+        language: "es-DO",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Emilio Online (Natural) - Spanish (Dominican Republic)",
+        language: "es-DO",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Valentina Online (Natural) - Spanish (Uruguay)",
+        language: "es-UY",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Mateo Online (Natural) - Spanish (Uruguay)",
+        language: "es-UY",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Paola Online (Natural) - Spanish (Venezuela)",
+        language: "es-VE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Sebastian Online (Natural) - Spanish (Venezuela)",
+        language: "es-VE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Google español",
+        language: "es-ES",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Google español de Estados Unidos",
+        language: "es-US",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Marisol",
+        language: "es-ES",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Mónica",
+        language: "es-ES",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Jorge",
+        language: "es-ES",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Angelica",
+        language: "es-MX",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Paulina",
+        language: "es-MX",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Juan",
+        language: "es-MX",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Isabela",
+        language: "es-AR",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Diego",
+        language: "es-AR",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Francisca",
+        language: "es-CL",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Soledad",
+        language: "es-CO",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Jimena",
+        language: "es-CO",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Carlos",
+        language: "es-CO",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Microsoft Helena - Spanish (Spain)",
+        language: "es-ES",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Laura - Spanish (Spain)",
+        language: "es-ES",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Pablo - Spanish (Spain)",
+        language: "es-ES",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Sabina - Spanish (Mexico)",
+        language: "es-MX",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Raul - Spanish (Mexico)",
+        language: "es-MX",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Google español 4 (Natural)",
+        language: "es-ES",
+        quality: ["high"],
+        altNames: [
+          "Chrome OS español 4",
+          "Android Speech Recognition and Synthesis from Google es-es-x-eee-local",
+          "Android Speech Recognition and Synthesis from Google es-ES-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google español 1 (Natural)",
+        language: "es-ES",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google es-es-x-eea-network",
+          "Chrome OS español 1",
+          "Android Speech Recognition and Synthesis from Google es-es-x-eea-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google español 2 (Natural)",
+        language: "es-ES",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google es-es-x-eec-network",
+          "Chrome OS español 2",
+          "Android Speech Recognition and Synthesis from Google es-es-x-eec-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google español 3 (Natural)",
+        language: "es-ES",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google es-es-x-eed-network",
+          "Chrome OS español 3",
+          "Android Speech Recognition and Synthesis from Google es-es-x-eed-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google español 5 (Natural)",
+        language: "es-ES",
+        quality: ["high"],
+        altNames: [
+          "Chrome OS español 5",
+          "Android Speech Recognition and Synthesis from Google es-es-x-eef-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google español de Estados Unidos 1 (Natural)",
+        language: "es-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google es-us-x-esc-network",
+          "Chrome OS español de Estados Unidos",
+          "Android Speech Recognition and Synthesis from Google es-us-x-esc-local",
+          "Android Speech Recognition and Synthesis from Google es-US-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google español de Estados Unidos 2 (Natural)",
+        language: "es-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google es-us-x-sfb-network",
+          "Android Speech Recognition and Synthesis from Google es-us-x-sfb-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google español de Estados Unidos 3 (Natural)",
+        language: "es-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google es-us-x-esd-network",
+          "Android Speech Recognition and Synthesis from Google es-us-x-esd-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google español de Estados Unidos 4 (Natural)",
+        language: "es-US",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google es-us-x-esf-network",
+          "Android Speech Recognition and Synthesis from Google es-us-x-esf-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+    ],
+  },
+  it: {
+    defaultRegion: "it-IT",
+    voices: [
+      {
+        name: "Microsoft Elsa Online (Natural) - Italian (Italy)",
+        language: "it-IT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Isabella Online (Natural) - Italian (Italy)",
+        language: "it-IT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft GiuseppeMultilingual Online (Natural) - Italian (Italy)",
+        language: "it-IT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Diego Online (Natural) - Italian (Italy)",
+        language: "it-IT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Google italiano",
+        language: "it-IT",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Federica",
+        language: "it-IT",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Emma",
+        language: "it-IT",
+        quality: ["low", "normal", "high"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Alice",
+        language: "it-IT",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Paola",
+        language: "it-IT",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Luca",
+        language: "it-IT",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Microsoft Elsa - Italian (Italy)",
+        language: "it-IT",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Cosimo - Italian (Italy)",
+        language: "it-IT",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Google italiano 2 (Natural)",
+        language: "it-IT",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google it-it-x-itb-network",
+          "Chrome OS italiano 2",
+          "Android Speech Recognition and Synthesis from Google it-it-x-itb-local",
+          "Android Speech Recognition and Synthesis from Google it-IT-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google italiano 1 (Natural)",
+        language: "it-IT",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google it-it-x-kda-network",
+          "Chrome OS italiano 1",
+          "Android Speech Recognition and Synthesis from Google it-it-x-kda-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google italiano 3 (Natural)",
+        language: "it-IT",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google it-it-x-itc-network",
+          "Chrome OS italiano 3",
+          "Android Speech Recognition and Synthesis from Google it-it-x-itc-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google italiano 4 (Natural)",
+        language: "it-IT",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google it-it-x-itd-network",
+          "Chrome OS italiano 4",
+          "Android Speech Recognition and Synthesis from Google it-it-x-itd-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+    ],
+  },
+  pt: {
+    defaultRegion: "pt-BR",
+    voices: [
+      {
+        name: "Microsoft Raquel Online (Natural) - Portuguese (Portugal)",
+        language: "pt-PT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Duarte Online (Natural) - Portuguese (Portugal)",
+        language: "pt-PT",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Francisca Online (Natural) - Portuguese (Brazil)",
+        language: "pt-BR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft ThalitaMultilingual Online (Natural) - Portuguese (Brazil)",
+        language: "pt-BR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Antonio Online (Natural) - Portuguese (Brazil)",
+        language: "pt-BR",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Google português do Brasil",
+        language: "pt-BR",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Catarina",
+        language: "pt-PT",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Joana",
+        language: "pt-PT",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Joaquim",
+        language: "pt-PT",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Fernanda",
+        language: "pt-BR",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Luciana",
+        language: "pt-BR",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Felipe",
+        language: "pt-BR",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Microsoft Helia - Portuguese (Portugal)",
+        language: "pt-PT",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Maria - Portuguese (Brazil)",
+        language: "pt-BR",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Daniel - Portuguese (Brazil)",
+        language: "pt-BR",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Google português de Portugal 1 (Natural)",
+        language: "pt-PT",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google pt-pt-x-jfb-network",
+          "Android Speech Recognition and Synthesis from Google pt-pt-x-jfb-local",
+          "Android Speech Recognition and Synthesis from Google pt-PT-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google português de Portugal 4 (Natural)",
+        language: "pt-PT",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google pt-pt-x-sfs-network",
+          "Chrome OS português de Portugal",
+          "Android Speech Recognition and Synthesis from Google pt-pt-x-sfs-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google português de Portugal 2 (Natural)",
+        language: "pt-PT",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google pt-pt-x-jmn-network",
+          "Android Speech Recognition and Synthesis from Google pt-pt-x-jmn-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google português de Portugal 3 (Natural)",
+        language: "pt-PT",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google pt-pt-x-pmj-network",
+          "Android Speech Recognition and Synthesis from Google pt-pt-x-pmj-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google português do Brasil 1 (Natural)",
+        language: "pt-BR",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google pt-br-x-afs-network",
+          "Chrome OS português do Brasil",
+          "Android Speech Recognition and Synthesis from Google pt-br-x-afs-local",
+          "Android Speech Recognition and Synthesis from Google pt-BR-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google português do Brasil 3 (Natural)",
+        language: "pt-BR",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google pt-br-x-pte-network",
+          "Android Speech Recognition and Synthesis from Google pt-br-x-pte-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google português do Brasil 2 (Natural)",
+        language: "pt-BR",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google pt-br-x-ptd-network",
+          "Android Speech Recognition and Synthesis from Google pt-br-x-ptd-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+    ],
+  },
+  nl: {
+    defaultRegion: "nl-NL",
+    voices: [
+      {
+        name: "Microsoft Colette Online (Natural) - Dutch (Netherlands)",
+        language: "nl-NL",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Fenna Online (Natural) - Dutch (Netherlands)",
+        language: "nl-NL",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Hanna Online - Dutch (Netherlands)",
+        language: "nl-NL",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Maarten Online (Natural) - Dutch (Netherlands)",
+        language: "nl-NL",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Dena Online (Natural) - Dutch (Belgium)",
+        language: "nl-BE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Arnaud Online (Natural) - Dutch (Belgium)",
+        language: "nl-BE",
+        quality: ["veryHigh"],
+        browser: ["Edge"],
+        preloaded: true,
+      },
+      {
+        name: "Google Nederlands",
+        language: "nl-NL",
+        quality: ["high"],
+        browser: ["ChromeDesktop"],
+        preloaded: true,
+      },
+      {
+        name: "Claire",
+        language: "nl-NL",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+      },
+      {
+        name: "Xander",
+        language: "nl-NL",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Ellen",
+        language: "nl-BE",
+        quality: ["low", "normal"],
+        localizedName: "apple",
+        os: ["macOS", "iOS", "iPadOS"],
+        preloaded: true,
+      },
+      {
+        name: "Microsoft Frank - Dutch (Netherlands)",
+        language: "nl-NL",
+        quality: ["normal"],
+        os: ["Windows"],
+        preloaded: true,
+      },
+      {
+        name: "Google Nederlands 4 (Natural)",
+        language: "nl-NL",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-lfc-network",
+          "Chrome OS Nederlands 4",
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-lfc-local",
+          "Android Speech Recognition and Synthesis from Google nl-NL-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Nederlands 1 (Natural)",
+        language: "nl-NL",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-tfb-network",
+          "Chrome OS Nederlands 1",
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-tfb-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Nederlands 5 (Natural)",
+        language: "nl-NL",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-yfr-network",
+          "Chrome OS Nederlands 5",
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-yfr-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Nederlands 2 (Natural)",
+        language: "nl-NL",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-bmh-network",
+          "Chrome OS Nederlands 2",
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-bmh-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Google Nederlands 3 (Natural)",
+        language: "nl-NL",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-dma-network",
+          "Chrome OS Nederlands 3",
+          "Android Speech Recognition and Synthesis from Google nl-nl-x-dma-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google nl-be-x-bec-network",
+        language: "nl-BE",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google nl-be-x-bec-local",
+          "Android Speech Recognition and Synthesis from Google nl-BE-language",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+      {
+        name: "Android Speech Recognition and Synthesis from Google nl-be-x-bed-network",
+        language: "nl-BE",
+        quality: ["high"],
+        altNames: [
+          "Android Speech Recognition and Synthesis from Google nl-be-x-bed-local",
+        ],
+        os: ["Android", "ChromeOS"],
+        preloaded: true,
+      },
+    ],
+  },
+};
+
+// Shared "no platform detected" default for the pickers here and in
+// tts-selection.js: no os/browser tags, so only untagged entries match.
+export const EMPTY_PLATFORM = Object.freeze({ os: [], browser: [] });
+
+// Rank quality tiers; `quality` is an array of variants a voice ships in, so we
+// take the best one (veryHigh > high > normal > low).
+const QUALITY_RANK = { veryHigh: 3, high: 2, normal: 1, low: 0 };
+
+function qualityRank(qualities) {
+  if (!Array.isArray(qualities) || qualities.length === 0) {
+    return 0;
+  }
+  return Math.max(0, ...qualities.map((q) => QUALITY_RANK[q] ?? 0));
+}
+
+// Minimal local normalization (lowercase, underscores to hyphens). Intentionally
+// not imported from tts-selection to keep this module cycle-free (tts-selection
+// imports preferRecommendedVoice from here). The caller (pickVoiceForLang)
+// passes an already-normalized code — Firefox three-letter primaries like
+// "deu" are mapped to the two-letter family keys by tts-selection's
+// normalizeLang — so only the family and a normalized region comparison are
+// needed here.
+function normalizeForLookup(code) {
+  return String(code || "")
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, "-");
+}
+
+// An entry with no `os`/`browser` tags is considered available on every
+// platform; otherwise at least one of the entry's tags must appear among the
+// device's detected candidate tags (which may include several, e.g. iPad
+// reports both "iPadOS" and "macOS").
+function platformAccepts(entryTags, deviceTags) {
+  if (!Array.isArray(entryTags) || entryTags.length === 0) {
+    return true;
+  }
+  if (!Array.isArray(deviceTags) || deviceTags.length === 0) {
+    return false;
+  }
+  return entryTags.some((tag) => deviceTags.includes(tag));
+}
+
+// Compare every (entry, device-voice) pair and pick the best by, in priority
+// order: region match -> preloaded -> quality -> localService (offline) ->
+// table order. Collecting all pairs (rather than the first matching entry)
+// lets `localService` tie-break across entries, faithful to ADR 0008.
+function byRank(a, b) {
+  if (a.regionMatch !== b.regionMatch) {
+    return b.regionMatch - a.regionMatch;
+  }
+  if (a.preloaded !== b.preloaded) {
+    return b.preloaded - a.preloaded;
+  }
+  if (a.quality !== b.quality) {
+    return b.quality - a.quality;
+  }
+  if (a.localService !== b.localService) {
+    return b.localService - a.localService;
+  }
+  return a.index - b.index;
+}
+
+/**
+ * Pick the best device voice for the resolved language using the vendored
+ * recommended-voice index (ADR 0008).
+ *
+ * @param {Array<{ name: string, lang: string, localService?: boolean }>} voicesForLang
+ *   Device voices already collected for the resolved language (exact then
+ *   family, deduped) — from `collectForLang` in tts-selection.js.
+ * @param {string} lang
+ *   The resolved language code, e.g. "de" or "de-DE".
+ * @param {{ recommended?: object, platform?: { os?: string[], browser?: string[] } }} [ctx]
+ *   The vendored index and the detected platform tags.
+ * @returns {{ name: string, lang: string } | null}
+ *   The chosen device voice, or null when no recommended voice is installed
+ *   (the caller falls back to any voice of the language — today's behavior).
+ */
+export function preferRecommendedVoice(
+  voicesForLang,
+  lang,
+  { recommended = {}, platform = EMPTY_PLATFORM } = {}
+) {
+  const target = normalizeForLookup(lang);
+  const family = target.split("-")[0];
+  const table = recommended[family];
+  if (!table) {
+    return null;
+  }
+  const region =
+    target !== family ? target : normalizeForLookup(table.defaultRegion);
+  const deviceOs = Array.isArray(platform?.os) ? platform.os : [];
+  const deviceBrowser = Array.isArray(platform?.browser)
+    ? platform.browser
+    : [];
+
+  const pairs = [];
+  table.voices.forEach((entry, index) => {
+    if (
+      !platformAccepts(entry.os, deviceOs) ||
+      !platformAccepts(entry.browser, deviceBrowser)
+    ) {
+      return;
+    }
+    // Name matching is case-insensitive to tolerate vendor case drift
+    // ("Google Deutsch" vs "Google deutsch", Android alias casing). The
+    // `localizedName: "apple"` marker is documentation-only and deliberately
+    // not consulted: current Apple voices report their canonical name
+    // unchanged regardless of system locale.
+    const names = [entry.name];
+    if (Array.isArray(entry.altNames)) {
+      names.push(...entry.altNames);
+    }
+    const lookupNames = names.map((name) => String(name).toLowerCase());
+    for (const voice of voicesForLang) {
+      if (lookupNames.includes(String(voice.name || "").toLowerCase())) {
+        pairs.push({
+          voice,
+          index,
+          regionMatch: normalizeForLookup(entry.language) === region ? 1 : 0,
+          preloaded: entry.preloaded ? 1 : 0,
+          quality: qualityRank(entry.quality),
+          localService: voice.localService ? 1 : 0,
+        });
+      }
+    }
+  });
+
+  if (pairs.length === 0) {
+    return null;
+  }
+  pairs.sort(byRank);
+  return pairs[0].voice;
+}

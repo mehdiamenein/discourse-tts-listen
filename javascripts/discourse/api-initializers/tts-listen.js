@@ -1,6 +1,8 @@
 import { apiInitializer } from "discourse/lib/api";
 import { i18n } from "discourse-i18n";
 import { playerForElement, remapChunks } from "../lib/tts-lifecycle";
+import { detectPlatform } from "../lib/tts-platform";
+import { RECOMMENDED_VOICES } from "../lib/tts-recommended-voices";
 import { groupVoicesByLang, selectVoice } from "../lib/tts-selection";
 import { buildSpeedOptions, DEFAULT_VALUE } from "../lib/tts-speed";
 
@@ -123,6 +125,9 @@ class TTSPlayer {
     this.postId = postId; // null when the post model is unavailable
     this.synth = window.speechSynthesis;
     this.postNumber = postNumber;
+    // The visitor's platform tags (ADR 0008), detected once: they do not
+    // change for the page lifetime and feed the recommended-voice filter.
+    this.platform = detectPlatform(navigator);
     this.blocks = [];
     this.index = 0;
     this.state = "idle"; // idle | playing | paused | done
@@ -443,6 +448,10 @@ class TTSPlayer {
   // the ladder returns {voice: null, matched: false} with the configured
   // language it was trying to satisfy, and the player shows the no-voice
   // notice (issue #18) instead of silently speaking list[0].
+  //
+  // Within the resolved language, the ADR 0008 recommended-voice preference
+  // (a vendored per-platform index) refines which voice is picked; it never
+  // changes which language is resolved and never fires the notice.
   applyDefaultSelection() {
     if (this.voiceChosen) {
       return;
@@ -452,6 +461,8 @@ class TTSPlayer {
       defaultVoice: settings.default_voice,
       platformLang: document.documentElement.lang,
       browserLangs: navigator.languages,
+      recommended: RECOMMENDED_VOICES,
+      platform: this.platform,
     });
     this.voice = selection.voice;
     this.voiceLang = selection.lang;

@@ -114,6 +114,17 @@ The selection ladder, in order ([ADR 0006](docs/adr/0006-voice-selection-redesig
 `auto` (the default) means "no admin preference": it skips step 2 and unlocks
 step 3, so a German forum with the admin on `auto` still gets German voices.
 
+Within the resolved language, the component then prefers a **per-platform
+recommended voice** from a vendored, curated index ([ADR 0008](docs/adr/0008-per-platform-recommended-voice.md)):
+e.g. `Anna` on macOS, `Microsoft Katja - German (Germany)` on Windows, the
+veryHigh Edge online voice on Edge. The index is derived from the
+[Readium Speech](https://github.com/readium/speech) project and is keyed by
+the detected platform (OS/browser). If no recommended voice for the platform is
+installed, the player falls back to any voice of the language — today's
+behavior — so this only ever improves the default, never breaks it. The admin
+still configures only a language; the index is shipped by the component, not
+set by the admin.
+
 ### Playback speed
 
 The speed drop-down offers `0.1×`–`2.0×` in `0.1` steps (20 options), aligned
