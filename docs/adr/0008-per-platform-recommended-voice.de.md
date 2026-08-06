@@ -42,10 +42,14 @@ pro-Geräte-Vorgabestimmen-Tabelle.
    wie in ADR 0005/0006. Es wird keine Einstellung hinzugefügt, entfernt oder
    migriert.
 2. **Die Komponente liefert einen vendoring-kompakten Index empfohlener
-   Stimmen** aus Readium Speech, genau für die Sprachen im `default_voice`-
-   Enum. Jeder Eintrag ist `{name, altNames, localizedName, os, browser,
+   Stimmen** aus Readium Speech, für einen Kernbestand der Sprachen im
+   `default_voice`-Enum (`de en fr es it pt nl`). Sprachen außerhalb des
+   Index fallen graceful auf das heutige Verhalten zurück (irgendeine Stimme
+   der Sprache, Invariante I1); der Bestand kann erweitert werden. Jeder
+   Eintrag ist `{name, altNames, localizedName, os, browser,
    quality, preloaded}`; umfangreiche Felder (`testUtterance`, `pitch`,
-   `rate`, `note`) entfallen. Ein Refresh-Skript dokumentiert die
+   `rate`, `note`) entfallen. Eine Refresh-Notiz
+   (`docs/research/0002-refresh-recommended-voices.md`) dokumentiert die
    Neu-Erzeugung.
 3. **Ein neuer reiner Schritt `preferRecommendedVoice` ordnet um, welche
    Stimme der aufgelösten Sprache gewählt wird**; er ändert nicht, welche
@@ -58,16 +62,20 @@ pro-Geräte-Vorgabestimmen-Tabelle.
    Vorgabe, Plattformsprache, Browsersprachen —, da alle „eine Stimme für
    Sprache X" auflösen. Der Besucher-Override (`{lang, name}`) ist namensbasiert
    und unverändert; er gewinnt immer.
-5. **Reihenfolge innerhalb einer Sprache:** zuerst `preloaded: true`, dann
-   `quality` (`veryHigh` > `high` > `normal`), dann `localService` (offline)
-   als Tie-Breaker, dann Indexreihenfolge. Die `defaultRegion` der Tabelle
-   wird bevorzugt, wenn der Admin einen bloßen Familiencode gesetzt hat (z. B.
-   `de` → `de-DE`-Stimmen bevorzugen).
+5. **Reihenfolge innerhalb einer Sprache:** zuerst Regions-Treffer (die
+   angefragte Region bzw. die `defaultRegion` der Tabelle, wenn der Admin
+   einen bloßen Familiencode gesetzt hat, z. B. `de` → `de-DE`-Stimmen
+   bevorzugen), dann `preloaded: true`, dann `quality` (`veryHigh` > `high`
+   > `normal` > `low`), dann `localService` (offline) als Tie-Breaker, dann
+   Indexreihenfolge.
 6. **Matching übersteht Plattform-Eigenheiten:** eine empfohlene Stimme
    passt auf eine Gerätestimme, wenn deren `name` gleich dem empfohlenen
-   `name` ist **oder** in `altNames` steht; bei `localizedName === "apple"`
-   wird der empfohlene `name` zusätzlich gegen den Apple-lokalisierten
-   Anzeigenamen geprüft.
+   `name` ist **oder** in `altNames` steht, jeweils case-insensitiv gegen
+   Vendor-Groß-/Kleinschreibung (z. B. „Google Deutsch" vs. „Google
+   deutsch"). `localizedName: "apple"` ist eine reine
+   Dokumentations-Markierung: der Wähler matcht auf den kanonischen `name`,
+   den aktuelle Apple-Stimmen unabhängig von der System-Locale unverändert
+   zurückgeben; eine Abfrage lokalisierter Namen findet nicht statt.
 7. **Plattform-Erkennung** ist eine grobe `navigator`-basierte Abbildung auf
    Readiums `os`/`browser`-Tags (`macOS`/`iOS`/`iPadOS`/`Windows`/`Android`/
    `ChromeOS`, `Edge`/`ChromeDesktop`). Sie ist ein Best-Effort-Filter, nicht
@@ -91,9 +99,12 @@ pro-Geräte-Vorgabestimmen-Tabelle.
   Best-Effort, wie in ADR 0006. Die Empfehlung ist eine Verfeinerung für
   Desktop und iOS, kein Android-Fix.
 - **Snapshot-Pflege.** Der vendoring-Index ist ein Snapshot, der veraltet,
-  wenn Apple/Google/Microsoft Stimmen ausliefern. Das Refresh-Skript und ein
-  Release-Checklisten-Eintrag dokumentieren die Neu-Erzeugung; der Index ist
-  kompakt, damit Review machbar bleibt.
+  wenn Apple/Google/Microsoft Stimmen ausliefern. Die Refresh-Notiz
+  (`docs/research/0002-refresh-recommended-voices.md`) und ein
+  Release-Checklisten-Eintrag dokumentieren die Neu-Erzeugung; regenerierte
+  Snapshots müssen schlank bleiben (nur die behaltenen Felder), da der Index
+  jedem Besucher ausgeliefert wird (ADR 0003), und kompakt, damit Review
+  machbar bleibt.
 - **Besucher-Override gewinnt weiterhin.** Ein Besucher, der im Drop-down
   eine Stimme wählt, wird nie durch die Empfehlung überstimmt.
 

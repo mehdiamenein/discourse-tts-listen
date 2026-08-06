@@ -5,7 +5,9 @@ The recommended-voice index lives in
 and the matching/ranking logic as `preferRecommendedVoice` in the same file.
 The data is a **snapshot** derived from the [Readium Speech][readium] project;
 it rots as Apple, Google and Microsoft ship new voices. Regenerate it
-periodically (a release-checklist item), review the diff, and commit.
+periodically (a release-checklist item), review the diff, and commit. The
+index ships to every visitor (ADR 0003), so regenerated snapshots must stay
+lean: only the kept fields below, no verbose vendor fields.
 
 ## What is kept
 

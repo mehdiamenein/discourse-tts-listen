@@ -37,11 +37,14 @@ default-voice map.
    ADR 0005/0006. No new setting is added; no setting is removed; no
    migration is needed.
 2. **The component ships a vendored, compact recommended-voices index**
-   derived from Readium Speech, covering exactly the languages in the
-   `default_voice` enum. Each entry is `{name, altNames, localizedName, os,
-   browser, quality, preloaded}`; verbose fields (`testUtterance`, `pitch`,
-   `rate`, `note`) are dropped. A refresh script documents how to regenerate
-   the index.
+   derived from Readium Speech, covering a core set of the `default_voice`
+   enum languages (`de en fr es it pt nl`). Languages not in the index
+   degrade gracefully to today's behavior (any voice of the language,
+   invariant I1); the set can be expanded later. Each entry is `{name,
+   altNames, localizedName, os, browser, quality, preloaded}`; verbose
+   fields (`testUtterance`, `pitch`, `rate`, `note`) are dropped. A refresh
+   note (`docs/research/0002-refresh-recommended-voices.md`) documents how
+   to regenerate the index.
 3. **A new pure step `preferRecommendedVoice` reorders which voice of the
    resolved language is picked**; it does not change which language is
    resolved. `findForLang` is split into "collect all voices of this language
@@ -52,14 +55,19 @@ default-voice map.
    default, platform language, browser languages — because all of them
    resolve "a voice for language X". The visitor override (`{lang, name}`
    identity) is name-based and unchanged; it always wins.
-5. **Ranking within a language:** `preloaded: true` first, then `quality`
-   (`veryHigh` > `high` > `normal`), then `localService` (offline) to break
-   ties, then first by index order. The table's `defaultRegion` is preferred
-   when the admin set a bare family code (e.g. `de` → prefer `de-DE` voices).
+5. **Ranking within a language:** region match first (the requested
+   region, or the table's `defaultRegion` when the admin set a bare family
+   code, e.g. `de` → prefer `de-DE` voices), then `preloaded: true`, then
+   `quality` (`veryHigh` > `high` > `normal` > `low`), then `localService`
+   (offline) to break ties, then first by index order.
 6. **Matching survives platform quirks:** a recommended voice matches a
    device voice when the device voice's `name` equals the recommended `name`
-   **or** any `altNames`; when `localizedName === "apple"` the recommended
-   `name` is also matched against the Apple-localized display name.
+   **or** any `altNames`, compared case-insensitively to tolerate vendor
+   case drift (e.g. `"Google Deutsch"` vs `"Google deutsch"`).
+   `localizedName: "apple"` is a documentation-only marker: the picker
+   matches on the canonical `name`, which current Apple voices report
+   unchanged regardless of system locale; no localized-name lookup is
+   performed.
 7. **Platform detection** is a crude `navigator`-based mapping to Readium's
    `os`/`browser` tags (`macOS`/`iOS`/`iPadOS`/`Windows`/`Android`/`ChromeOS`,
    `Edge`/`ChromeDesktop`). It is a best-effort filter, not authoritative; a
@@ -80,9 +88,11 @@ default-voice map.
   notice remains best-effort on Android, as in ADR 0006. The recommended-
   voice preference is a refinement for desktop and iOS, not an Android fix.
 - **Snapshot maintenance.** The vendored index is a snapshot that rots as
-  Apple/Google/Microsoft ship voices. The refresh script and a release-
-  checklist note document regeneration; the index is compact so review is
-  tractable.
+  Apple/Google/Microsoft ship voices. The refresh note
+  (`docs/research/0002-refresh-recommended-voices.md`) and a release-
+  checklist item document regeneration; regenerated snapshots must stay
+  lean (only the kept fields), since the index ships to every visitor
+  (ADR 0003), and compact so review is tractable.
 - **Visitor override still wins.** A visitor who picks a voice in the
   drop-down is never overridden by the recommended-voice preference.
 
