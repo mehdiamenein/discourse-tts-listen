@@ -3,7 +3,11 @@ import { i18n } from "discourse-i18n";
 import { playerForElement, remapChunks } from "../lib/tts-lifecycle";
 import { detectPlatform } from "../lib/tts-platform";
 import { RECOMMENDED_VOICES } from "../lib/tts-recommended-voices";
-import { groupVoicesByLang, selectVoice } from "../lib/tts-selection";
+import {
+  groupVoicesByLang,
+  parseAdminPin,
+  selectVoice,
+} from "../lib/tts-selection";
 import { buildSpeedOptions, DEFAULT_VALUE } from "../lib/tts-speed";
 
 // UI strings come from the theme translations (locales/*.yml), so the player
@@ -141,6 +145,13 @@ class TTSPlayer {
     this.voicesLoaded = false; // the device has reported at least one voice
     this.voiceChosen = false; // the user picked their own voice in the dropdown
     this.currentBlock = null;
+
+    // Build the admin's per-platform voice-name pins (ADR 0009) once: the
+    // eight settings do not change for the page lifetime, and selectVoice
+    // consumes the {tag -> {lang, name}} map at every language-resolved ladder
+    // step. The `auto` (no-pin) default parses to null, so an untouched
+    // install has no pins and the ladder is unchanged (invariant I3).
+    this.adminPins = this.buildAdminPins();
 
     this.applyDefaultSelection();
     this.buildUI();
@@ -437,6 +448,33 @@ class TTSPlayer {
     }
   }
 
+  // Read the eight per-platform voice-name settings (ADR 0009) into a
+  // {tag -> {lang, name}} map, skipping `auto` and unparseable values. Built
+  // once per player and reused at every ladder step; the settings are static
+  // for the page lifetime. The tag keys mirror detectPlatform's output
+  // (tts-platform.js), so a pin set for `voice_macos` lands under `macOS` and
+  // is matched against an Apple visitor's detected os tag.
+  buildAdminPins() {
+    const pins = {};
+    const map = {
+      voice_macos: "macOS",
+      voice_ios: "iOS",
+      voice_ipados: "iPadOS",
+      voice_windows: "Windows",
+      voice_android: "Android",
+      voice_chromeos: "ChromeOS",
+      voice_chrome_desktop: "ChromeDesktop",
+      voice_edge: "Edge",
+    };
+    for (const [setting, tag] of Object.entries(map)) {
+      const pin = parseAdminPin(settings[setting]);
+      if (pin) {
+        pins[tag] = pin;
+      }
+    }
+    return pins;
+  }
+
   // Pick the starting voice from the selection ladder (ADR 0006): a
   // persisted user override, then the admin's default language, then the
   // platform language (only when the default is "auto"), then the browser
@@ -450,8 +488,9 @@ class TTSPlayer {
   // notice (issue #18) instead of silently speaking list[0].
   //
   // Within the resolved language, the ADR 0008 recommended-voice preference
-  // (a vendored per-platform index) refines which voice is picked; it never
-  // changes which language is resolved and never fires the notice.
+  // (a vendored per-platform index) refines which voice is picked, and the
+  // ADR 0009 admin per-platform pin can override that pick; neither changes
+  // which language is resolved and neither fires the notice.
   applyDefaultSelection() {
     if (this.voiceChosen) {
       return;
@@ -463,6 +502,7 @@ class TTSPlayer {
       browserLangs: navigator.languages,
       recommended: RECOMMENDED_VOICES,
       platform: this.platform,
+      adminPins: this.adminPins,
     });
     this.voice = selection.voice;
     this.voiceLang = selection.lang;

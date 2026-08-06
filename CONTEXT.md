@@ -38,9 +38,10 @@ _Avoid_: device language, system language, locale
 The single theme setting that pins a preferred voice *language*, chosen from a
 drop-down of language codes (e.g. `de` or `de-DE`). `auto` means no
 preference: follow the platform language. There is deliberately no second
-"fallback" language setting — see ADR 0006 — and no per-voice-name setting:
-the specific voice within the language is chosen per platform from a curated
-recommended-voice index — see ADR 0008.
+"fallback" language setting — see ADR 0006. The specific voice within the
+resolved language is chosen per platform from a curated recommended-voice
+index — see ADR 0008 — and, since ADR 0009, can be overridden per platform by
+an admin pin from that same index.
 _Avoid_: primary voice, preferred voice
 
 **Recommended voice**:
@@ -51,6 +52,12 @@ language and platform. The index carries each voice's `name`, `altNames`
 system locale), with `os`/`browser`, `quality` and `preloaded` fields for
 ranking. When no recommended voice is installed, selection falls back to any
 voice of the language (today's behavior). The visitor override always wins.
+Since ADR 0009, an admin can pin a specific recommended voice *name* per
+platform (`voice_macos`, `voice_ios`, …, `voice_edge`), overriding the
+automatic pick for that platform only when the pinned name's language family
+matches the resolved language and the voice is installed; `auto` (the
+default) means "use the automatic pick". The drop-down choices are derived
+from the index by `scripts/build-voice-choices.mjs`.
 _Avoid_: default voice, preferred voice, pinned voice
 
 **Platform tag**:

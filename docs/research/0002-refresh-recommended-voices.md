@@ -75,6 +75,17 @@ or refresh:
    not cover are simply omitted; `selectVoice` degrades gracefully to "any
    voice of the language" (today's behavior) for them — see invariant I1 in
    `tts-selection-test.js`.
+4. **Regenerate the admin drop-down choices.** The eight per-platform
+   `voice_*` enums in `settings.yml` (ADR 0009) are *derived* from this index;
+   after changing it, run `node scripts/build-voice-choices.mjs` and paste its
+   output back into the matching `voice_*:` blocks in `settings.yml` (keeping
+   the `auto` leading entry). A stale `settings.yml` would let an admin pin a
+   name the index no longer carries, or miss a newly added voice.
+5. **Guard the choice separator.** The choice value is `"<lang>: <name>"` and
+   the player splits on the first `": "`. `": "` must never appear inside a
+   vendored voice `name`; run a quick check over the index before committing a
+   refresh (the current snapshot has none). If a future vendor name contains
+   `": "`, switch the separator and update `parseAdminPin` together.
 
 ## Verification
 
@@ -84,6 +95,7 @@ or refresh:
   pin the algorithm; the integration cases against `RECOMMENDED_VOICES` will
   need their expected voice names updated if a curated voice is renamed.
 - The two regression invariants (I1 no-op-degrade, I2 notice-never-fires) in
-  `tts-selection-test.js` must remain green after any refresh.
+  `tts-selection-test.js` must remain green after any refresh, plus the I3
+  no-op invariant for the ADR 0009 admin-pin layer.
 
 [readium]: https://github.com/readium/speech

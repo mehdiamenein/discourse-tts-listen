@@ -30,12 +30,14 @@
 // false when the ladder found no voice at all — never list[0], which is
 // an unreliable, unspecified terminal fallback (ADR 0006).
 //
-// At every language-resolved step the picker applies preferRecommendedVoice
-// (ADR 0008) before falling back to the first collected voice of the
-// language (today's behavior). The two regression invariants hold by
-// construction: I1 — with no recommendation resolving, the picker returns
-// exactly what the old findForLang returned; I2 — adding the index never
-// changes `matched`, only which voice.
+// At every language-resolved step the picker applies, in order, the admin's
+// per-platform pinned name (ADR 0009) then preferRecommendedVoice (ADR 0008)
+// before falling back to the first collected voice of the language (today's
+// behavior). The three regression invariants hold by construction: I1 — with
+// no recommendation resolving, the picker returns exactly what the old
+// findForLang returned; I2 — adding the index never changes `matched`, only
+// which voice; I3 — with every per-platform pin left on `auto` (the default),
+// preferAdminPinnedVoice returns null and the ladder is unchanged.
 //
 // Settings are language codes, never voice names: codes like "de-DE" are
 // universal across browsers and devices, while voice names ("Google Deutsch",
@@ -47,6 +49,43 @@ import {
   EMPTY_PLATFORM,
   preferRecommendedVoice,
 } from "./tts-recommended-voices";
+
+// Per-platform admin pin (ADR 0009): a voice *name* the admin pinned for one
+// platform tag, stored as the enum value "<lang>: <name>" in settings.yml. The
+// player parses each setting into this shape once and passes a {tag -> pin}
+// map to selectVoice, so the pure matcher never touches settings or strings.
+// `": "` is the separator: it never appears in a vendored voice name (the
+// refresh-note checklist guards this), so the split is unambiguous. `auto` and
+// anything that fails to parse resolve to null — no pin, no override.
+export function parseAdminPin(value) {
+  const raw = String(value || "").trim();
+  if (!raw || raw.toLowerCase() === "auto") {
+    return null;
+  }
+  const idx = raw.indexOf(": ");
+  if (idx <= 0) {
+    return null;
+  }
+  return { lang: raw.slice(0, idx), name: raw.slice(idx + 2) };
+}
+
+// Priority order among the platform tags a visitor may carry, used to choose
+// which admin pin wins when a device reports more than one (an iPad reports
+// both iPadOS and macOS; Edge-on-Windows reports Windows and Edge). Browser
+// tags rank above os tags because browser-specific voices (Microsoft Edge
+// Online, Google Desktop) are the higher-quality names an admin pins for that
+// browser, and within Apple's dual tag the more specific iPadOS wins. The
+// tags mirror detectPlatform's output (tts-platform.js).
+const PIN_TAG_PRIORITY = [
+  "Edge",
+  "ChromeDesktop",
+  "iPadOS",
+  "iOS",
+  "macOS",
+  "Windows",
+  "Android",
+  "ChromeOS",
+];
 
 /**
  * @param {Array<{ name: string, lang: string }>} voices
@@ -66,6 +105,13 @@ import {
  *   recommendation: the picker falls back to any voice of the language.
  * @param {{ os?: string[], browser?: string[] }} [options.platform]
  *   The detected platform tags (ADR 0008), used to filter the index.
+ * @param {object} [options.adminPins]
+ *   The admin's per-platform pinned voice names (ADR 0009), keyed by platform
+ *   tag (`macOS`/`iOS`/`iPadOS`/`Windows`/`Android`/`ChromeOS`/`ChromeDesktop`/
+ *   `Edge`), each `{ lang, name }` or null. A pin wins over the recommended-
+ *   voice index when its language family matches the resolved language and
+ *   the named voice is installed; otherwise it is ignored. `{}`/null means no
+ *   pins: the ladder is unchanged (invariant I3).
  * @returns {{ voice: ({ name: string, lang: string } | null), lang: string, matched: boolean }}
  *   The chosen voice (or null when nothing matches), the language to speak
  *   with (the configured preference the device could not satisfy when no
@@ -80,6 +126,7 @@ export function selectVoice(
     browserLangs = [],
     recommended = {},
     platform = EMPTY_PLATFORM,
+    adminPins = {},
   } = {}
 ) {
   const list = Array.isArray(voices) ? voices : [];
@@ -104,6 +151,7 @@ export function selectVoice(
     const sameLang = pickVoiceForLang(list, userVoice.lang, {
       recommended,
       platform,
+      adminPins,
     });
     if (sameLang) {
       return { voice: sameLang, lang: sameLang.lang, matched: true };
@@ -118,6 +166,7 @@ export function selectVoice(
     const byDefault = pickVoiceForLang(list, defaultVoice, {
       recommended,
       platform,
+      adminPins,
     });
     if (byDefault) {
       return { voice: byDefault, lang: byDefault.lang, matched: true };
@@ -132,6 +181,7 @@ export function selectVoice(
     const byPlatform = pickVoiceForLang(list, platformLang, {
       recommended,
       platform,
+      adminPins,
     });
     if (byPlatform) {
       return { voice: byPlatform, lang: byPlatform.lang, matched: true };
@@ -143,6 +193,7 @@ export function selectVoice(
     const byBrowser = pickVoiceForLang(list, browserLang, {
       recommended,
       platform,
+      adminPins,
     });
     if (byBrowser) {
       return { voice: byBrowser, lang: byBrowser.lang, matched: true };
@@ -305,23 +356,93 @@ export function collectForLang(voices, lang) {
 export function pickVoiceForLang(
   voices,
   lang,
-  { recommended = {}, platform = EMPTY_PLATFORM } = {}
+  { recommended = {}, platform = EMPTY_PLATFORM, adminPins = {} } = {}
 ) {
   const collected = collectForLang(voices, lang);
   if (collected.length === 0) {
     return null;
   }
-  // Pass the normalized needle (not the raw lang) so a Firefox three-letter
-  // primary ("deu") still hits the index's two-letter family key ("de")
-  // instead of silently skipping the recommendation.
+  const normalized = normalizeLang(lang);
+  // 1. Admin's per-platform pinned name (ADR 0009) wins when its language
+  //    family matches the resolved language and the named voice is installed;
+  //    it overrides the index's ranked pick because the admin chose it.
+  // 2. Then the ADR 0008 recommended-voice preference, refining which voice of
+  //    the language is picked from the vendored index.
+  // 3. Then the first collected voice — exactly what the old findForLang
+  //    returned (invariant I1).
   return (
-    preferRecommendedVoice(collected, normalizeLang(lang), {
-      recommended,
-      platform,
-    }) ||
+    preferAdminPinnedVoice(collected, normalized, { adminPins, platform }) ||
+    preferRecommendedVoice(collected, normalized, { recommended, platform }) ||
     collected[0] ||
     null
   );
+}
+
+// Resolve the admin's per-platform pinned name to an installed device voice
+// (ADR 0009). A pin only takes effect when its language family matches the
+// resolved language AND the named voice is actually installed on the device;
+// a pin for a language the visitor is not hearing, or for a voice the device
+// lacks, is ignored so the visitor never hears the wrong language and never
+// gets a silent no-op. When a device carries several platform tags (an iPad
+// reports iPadOS and macOS; Edge-on-Windows reports Windows and Edge), the
+// highest-priority pin that resolves wins — see PIN_TAG_PRIORITY. Returns
+// null when no pin applies, so the caller falls through to the recommended-
+// voice index (ADR 0008) and then any voice of the language (invariant I3).
+//
+// @param {Array<{ name: string, lang: string }>} voicesForLang
+//   Device voices already collected for the resolved language.
+// @param {string} lang
+//   The resolved language, already normalized (e.g. "de" or "de-DE").
+// @param {{ adminPins?: object, platform?: { os?: string[], browser?: string[] } }} [ctx]
+// @returns {{ name: string, lang: string } | null}
+export function preferAdminPinnedVoice(
+  voicesForLang,
+  lang,
+  { adminPins = {}, platform = EMPTY_PLATFORM } = {}
+) {
+  if (!adminPins || typeof adminPins !== "object") {
+    return null;
+  }
+  const family = String(lang || "").split("-")[0];
+  if (!family) {
+    return null;
+  }
+  // Collect the device's tags, then order them by priority so the most
+  // specific pin is tried first. A tag the device did not report is skipped —
+  // an admin pin for macOS never affects an Android visitor.
+  const deviceTags = [
+    ...(Array.isArray(platform?.browser) ? platform.browser : []),
+    ...(Array.isArray(platform?.os) ? platform.os : []),
+  ];
+  const ordered = deviceTags
+    .map((tag) => ({ tag, rank: PIN_TAG_PRIORITY.indexOf(tag) }))
+    .filter((entry) => entry.rank >= 0)
+    .sort((a, b) => a.rank - b.rank)
+    .map((entry) => entry.tag);
+  for (const tag of ordered) {
+    const pin = adminPins[tag];
+    if (!pin || !pin.name) {
+      continue;
+    }
+    // Family match, not exact-region: the admin pins a voice for a language
+    // ("de"), not a region, so a de-AT pin honors a resolved "de" or "de-DE";
+    // the admin explicitly chose that voice for the language.
+    const pinFamily = normalizeLang(pin.lang).split("-")[0];
+    if (pinFamily !== family) {
+      continue;
+    }
+    // Case-insensitive name match, mirroring preferRecommendedVoice: vendor
+    // case drift ("Google Deutsch" vs "Google deutsch") must not defeat an
+    // explicit admin pin either.
+    const needle = String(pin.name).toLowerCase();
+    const match = voicesForLang.find(
+      (voice) => String(voice.name || "").toLowerCase() === needle
+    );
+    if (match) {
+      return match;
+    }
+  }
+  return null;
 }
 
 // Group device voices by their normalized language, returning one entry

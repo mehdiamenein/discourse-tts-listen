@@ -66,6 +66,7 @@ components → TTS Listen Button → Settings**:
 | ------------------------- | ------- | ------------------------------------------------------------------------------------------------- |
 | `default_rate`            | `1`     | Default playback speed. The drop-down offers `0.1`–`2.0` in `0.1` steps; the setting shares that range. |
 | `default_voice`           | `auto`  | Preferred voice **language**, chosen from a drop-down (e.g. `de` or `de-DE`). `auto` follows the platform's default language. |
+| `voice_macos` … `voice_edge` | `auto`  | Eight per-platform recommended **voice-name** drop-downs (macOS, iOS, iPadOS, Windows, Android, ChromeOS, Chrome desktop, Edge), each listing the curated voices for that platform. `auto` lets the component pick; a name overrides it only when its language family matches the spoken language and the voice is installed. See [ADR 0009](docs/adr/0009-admin-per-platform-voice-pin.md). |
 | `show_voice_selector`     | `true`  | Show a dropdown with the device's available voices, grouped by language.                          |
 | `skip_code_blocks`        | `true`  | Don't read out code blocks.                                                                        |
 | `skip_quotes`             | `false` | Don't read out quoted posts.                                                                       |
@@ -121,9 +122,17 @@ veryHigh Edge online voice on Edge. The index is derived from the
 [Readium Speech](https://github.com/readium/speech) project and is keyed by
 the detected platform (OS/browser). If no recommended voice for the platform is
 installed, the player falls back to any voice of the language — today's
-behavior — so this only ever improves the default, never breaks it. The admin
-still configures only a language; the index is shipped by the component, not
-set by the admin.
+behavior — so this only ever improves the default, never breaks it.
+
+The admin can also **pin a specific recommended voice name per platform**
+([ADR 0009](docs/adr/0009-admin-per-platform-voice-pin.md)) via the eight
+`voice_*` drop-downs. Each lists the curated voices for that platform (lang-
+prefixed, e.g. `"de-DE: Anna"`), and a pinned name overrides the automatic
+pick for that platform only when its language family matches the spoken
+language and the voice is actually installed; otherwise it is ignored and the
+automatic pick applies. `auto` (the default) leaves the automatic pick in
+charge. The drop-down choices are derived from the same vendored index by
+`scripts/build-voice-choices.mjs`, so the two never drift apart.
 
 ### Playback speed
 
